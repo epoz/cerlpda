@@ -1,5 +1,6 @@
 searchbox = document.getElementById("searchbox")
 searchresults = document.getElementById("searchresults")
+showrandom = document.getElementById("showrandom")
 
 
 async def update_grid():
@@ -25,7 +26,8 @@ async def searchbox_keyup(event):
 
 async def init():
     searchbox.addEventListener("keyup", searchbox_keyup)
-    do_search()
+    showrandom.addEventListener("click", searchbox_keyup)
+    searchbox.focus()
 
 
 window.addEventListener("load", init)

@@ -4,6 +4,7 @@
 {% if text %}{% if title %}<span class="hed">{{title}}: </span>{% endif %}{{text}}{% endif %}
 {% endmacro %}
 
+{% block title %}CERL PDA · {{obj["ID"][0]}}{% endblock title %}
 
 {% block head_last%}
 <script src="/static/openseadragon-2.4.2/openseadragon.min.js"></script>

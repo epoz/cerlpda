@@ -28,10 +28,15 @@ from .am import *
 
 @app.get("/", response_class=HTMLResponse, include_in_schema=False)
 async def homepage(request: Request):
+    # Count the number of items in the database and display a total as welcome message
+    row = await database.fetch_one("SELECT count(id) FROM source")
+    total = row[0]
+
     response = templates.TemplateResponse(
         "homepage.html",
         {
             "request": request,
+            "total": total,
         },
     )
     return response
@@ -119,20 +124,23 @@ async def fragments_search(request: Request, q: str = "", size: int = 20):
 
 @app.get("/api/search")
 async def api_search(q: str, size: int = 20):
+    total = 0
     if not q:
         search_results = await database.fetch_all(
-            "SELECT id FROM source ORDER BY random() LIMIT 100"
+            "SELECT id FROM source ORDER BY random()"
         )
+        total = len(search_results)
     else:
         query = "SELECT id FROM idx WHERE text MATCH :q ORDER BY rank"
         search_results = await database.fetch_all(query, values={"q": q})
+        total = len(search_results)
     search_results = [f"'{row[0]}'" for row in search_results]
 
     batch = await database.fetch_all(
         "SELECT obj FROM source WHERE id in (%s)" % ", ".join(search_results)
     )
     batch = [json.loads(x[0]) for x in batch]
-    return {"total": len(batch), "results": batch[:size]}
+    return {"total": total, "results": batch[:size]}
 
 
 @app.get("/favicon.ico", include_in_schema=False)

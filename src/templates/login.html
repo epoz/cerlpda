@@ -1,0 +1,89 @@
+{% extends "base.html" %}
+{% block login %}<a href="/register" type="button" class="btn btn-warning btn-sm">Register New Account</a>{% endblock %}
+
+
+{% block head_last %}<style>
+.form-signin {
+  width: 100%;
+  max-width: 330px;
+  padding: 15px;
+  margin: auto;
+}
+
+.form-signin .form-floating:focus-within {
+  z-index: 2;
+}
+
+</style>{% endblock %}
+
+{% block content %}
+<div class="container mb-5">
+    <div class="row">
+
+        <div class="form-signin col-6">
+        <form>
+            <h1 class="h3 mb-3 fw-normal">Please login</h1>
+
+            <div class="form-floating">
+                <input type="email" class="form-control" id="emailInput" placeholder="name@example.com" 
+                 style="margin-bottom: -1px; border-bottom-right-radius: 0; border-bottom-left-radius: 0;">
+                <label for="emailInput">Email address</label>
+            </div>
+
+            <div class="form-floating">
+                <input type="password" class="form-control" id="passwordInput" placeholder="Password" 
+                style="margin-bottom: 10px; border-top-left-radius: 0; border-top-right-radius: 0;">
+                <label for="passwordInput">Password</label>
+            </div>
+            <button class="w-100 btn btn-lg btn-primary" type="submit" id="signinButton">Sign in</button>
+            
+        </form>
+        </div>  
+
+        <div class="col-6 p-5">
+            <h4>New user?</h4>
+            <p>If you haven't yet, you can also <a id="registerNew" href="/register">register a new account</a></p>
+        </div>
+    </div>
+    <div class="row">
+        <div class="col m-5">
+            <h4>Help!</h4>
+            <span id="helptext">I forgot my password, <a href="/passwordreset">can you send me a reset link?</a></span>
+            <div id="reminderMsg" style="margin-top: 1rem"></div>
+        </div>
+    </div>
+</div>
+
+<script type="text/javascript">
+document.getElementById("emailInput").focus()
+
+
+async function doLogin(username, password) {
+    var response = await fetch("/token", {
+        method: 'POST', mode: 'cors', body: "username="+ username+"&password="+password, credentials: 'same-origin',
+        headers: {'Content-Type': 'application/x-www-form-urlencoded'}
+    })
+    if(response.status === 200) {
+        var data = await response.json()
+        var age = 60*60*24*30 // 30 days age
+        document.cookie = "access_token="+data.access_token+"; samesite=strict max-age="+age
+        document.location = "/"
+    } else {
+        document.getElementById("reminderMsg").innerHTML = "<b>Alas, that email and password combination did not work<b>"
+        document.getElementById("emailInput").focus()
+    }
+}
+
+document.getElementById("signinButton").addEventListener("click", function(event) {
+    event.preventDefault()
+    var emailAddress = document.getElementById("emailInput").value
+    var aPassword = document.getElementById("passwordInput").value
+    if(emailAddress && aPassword) {
+        doLogin(emailAddress, aPassword)
+    } else {
+        document.getElementById("reminderMsg").innerHTML = "<b>Make sure you fill in both an email address and a password<b>"
+        document.getElementById("emailInput").focus()
+    }
+})
+</script>
+{% endblock %}

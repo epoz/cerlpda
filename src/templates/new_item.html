@@ -1,0 +1,31 @@
+{% extends "base.html" %}
+
+{% block head_last%}
+<script src="/static/openseadragon-2.4.2/openseadragon.min.js"></script>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid" style="padding: 0;">
+        <div class="row p-4">
+            <div class="col">
+                <a class="btn btn-info" href="#">Edit</a>        
+                <a class="btn btn-danger" href="#">Delete</a>
+                <a class="btn btn-success" href="#">Request Help</a>
+                <a class="btn btn-secondary" href="#">Comment</a>
+            </div>
+            <div class="col">
+                <a href="https://www.cerl.org/resources/provenance/pdaguidelines">Instructions</a>
+            </div>
+        </div>
+
+
+    <div class="row" style="text-align: center; padding: 1vw 2vw 0 2vw">
+
+        <h1>New Item</h1>
+
+    </div>
+
+
+</div>
+
+{% endblock %}

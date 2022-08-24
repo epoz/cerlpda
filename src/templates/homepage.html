@@ -1,0 +1,39 @@
+{% extends "base.html" %}
+
+{% block head_last%}
+<style>
+.parallax {
+	height: 60vh;
+	background-attachment: fixed;
+	background-position: center;
+	background-repeat: no-repeat;
+	background-size: cover;
+}
+.wideslab {
+ padding: 3vw; min-height: 27vh; text-align: center; width: 100vw
+}
+</style>
+<script type="module">import * as homepage from '/static/homepage/homepage.js';</script>
+{% endblock %}
+
+{% block notification %}
+<div class="container-fluid" style="animation: fadeOut 30s; background-color: #000; color: #ae2323; padding: 0.5vw; text-align: right">
+<span style="font-size: 150%">☞&nbsp;&nbsp;</span> This is a test system under development, and <strong>not</strong> the live database!    
+</div>
+{% endblock notification %}
+ 
+{% block content %}
+<div class="container-fluid" style="padding: 0;">
+
+<div class="wideslab" style="text-align: center; padding-top: 8vw">
+<h2>❧ Welcome to the CERL Provenance Digital Archive</h2>
+<div>
+<input type="search" id="searchbox" style="width: 80%" placeholder="Type here to start searching..."/>
+</div>
+</div>
+
+<div id="searchresults"></div>
+
+</div>
+
+{% endblock %}

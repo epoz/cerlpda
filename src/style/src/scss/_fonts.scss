@@ -1,0 +1,27 @@
+@font-face {
+    font-family: "Satyr";
+    font-style: normal;
+    font-weight: 400;
+    src: url("./fonts/sc_satyr10_web.eot"); /* IE9 Compat Modes */
+    src: local(""),
+      url("./fonts/sc_satyr10_web.eot?#iefix")
+        format("embedded-opentype"),
+      /* IE6-IE8 */ url("./fonts/sc_satyr10_web.woff2")
+        format("woff2"),
+      /* Super Modern Browsers */ url("./fonts/sc_satyr10_web.woff")
+        format("woff"),
+  }
+
+@font-face {
+    font-family: "Satyr Smallcaps";
+    font-style: normal;
+    font-weight: 400;
+    src: url("./fonts/sc_satyr10_web_smallcaps.eot"); /* IE9 Compat Modes */
+    src: local(""),
+      url("./fonts/sc_satyr10_web_smallcaps.eot?#iefix")
+        format("embedded-opentype"),
+      /* IE6-IE8 */ url("./fonts/sc_satyr10_web_smallcaps.woff2")
+        format("woff2"),
+      /* Super Modern Browsers */ url("./fonts/sc_satyr10_web_smallcaps.woff")
+        format("woff"),
+  }

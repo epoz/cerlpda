@@ -1,0 +1,15 @@
+import os
+
+DEBUG = os.environ.get("DEBUG", "0") == "1"
+ORIGINS = os.environ.get(
+    "ORIGINS",
+    "http://localhost:8080",
+).split(" ")
+DATABASE_URL = "sqlite:///cerlpda.sqlite"
+ADMIN_DATABASE = os.environ.get("ADMIN_DATABASE", "admin.sqlite")
+SECRET_KEY = os.environ.get("SECRET_KEY", "foobarbaz")
+ACCESS_TOKEN_EXPIRE_DAYS = int(os.environ.get("ACCESS_TOKEN_EXPIRE_DAYS", "30"))
+
+SITE_URI = "https://pda.epoz.org/"
+CONTACT_EMAIL = "secretariat@cerl.org"
+HELP_PATH = os.environ.get("HELP_PATH", "help")

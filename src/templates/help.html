@@ -1,0 +1,16 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container">
+    <div class="row p-3">
+        <div class="col-sm-8" style="min-height: 50vh">{{content}}</div>
+        <div class="col-sm-4">
+            <h5>Table of Contents</h5>
+            <ul>
+                <li><a href="#about">General</a></li>
+                <li><a href="#canyouhelp">Can You Help</a></li>
+            </ul>
+        </div>
+    </div>
+</div>
+{% endblock content %}

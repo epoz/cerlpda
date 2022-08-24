@@ -34,4 +34,4 @@ COPY --from=transcrypt /home/homepage /home/src/static/homepage
 
 WORKDIR /home/src
 
-CMD ["uvicorn", "--port", "8000", "--host", "0.0.0.0", "app:app"]
+CMD ["uvicorn", "--port", "50011", "--host", "127.0.0.1", "app:app"]

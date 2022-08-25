@@ -28,17 +28,19 @@
 <div class="wideslab" style="text-align: center; padding-top: 8vw">
 <h2>❧ Welcome to the CERL Provenance Digital Archive</h2>
 <div>
-<input type="search" id="searchbox" style="width: 80%" placeholder="Type here to start searching..."/>
+<input type="search" id="searchbox" style="width: 80%" placeholder="Type here to start searching..." value="{{q}}"/>
+<a href="/help/searchtips" style="font-size: 75%; font-family: Satyr Smallcaps; color: #888;">Search tips</a>
 </div>
 </div>
 
+{% block searchresults %}
 <div id="searchresults">
-<div class="row justify-content-center" style="height: 30vh">
-<div class="col-3">There are currently {{total}} items in the database.</div>
-<div class="col-3"><a href="#" id="showrandom">Click here to see a random selection</a>, or type a search query.</div>
-
+    <div class="row justify-content-center" style="height: 30vh">
+        <div class="col-3">There are currently {{total}} items in the database.</div>
+        <div class="col-3"><a href="#" id="showrandom">Click here to see a random selection</a>, or type a search query.</div>
+    </div>
 </div>
-</div>
+{% endblock searchresults %}
 
 </div>
 

@@ -122,6 +122,16 @@ async def fragments_search(request: Request, q: str = "", size: int = 20):
     return response
 
 
+@app.get("/search")
+async def search(request: Request, q: str = "", size: int = 20):
+    batch = await api_search(q, size)
+    response = templates.TemplateResponse(
+        "search.html",
+        {"request": request, "data": batch, "q": q},
+    )
+    return response
+
+
 @app.get("/api/search")
 async def api_search(q: str, size: int = 20):
     total = 0

@@ -1,0 +1,25 @@
+{% extends "homepage.html" %}
+
+{% block searchresults %}
+<div id="searchresults">
+
+    <div class="row justify-content-center">
+        <div class="col-4 align-self-center">{{data.total}} items</div>
+    </div>
+
+
+    <div class="row grid" data-masonry='{"percentPosition": true }' style="padding: 2vw">
+    {% for obj in data.results %}
+    <div class="col-sm-6 col-lg-2 mb-4 grid-item" anid="{{obj.get('ID')[0]}}">
+        <div class="card">
+        <a target="cerlpda_item" href="/id/{{obj.get('ID')[0]}}"><img width="100%" src="https://iiif.arkyves.org/{{obj.get('URL_IMAGE')[0]}}/full/150,/0/default.jpg"></a>
+        <div class="card-body">
+            <p style="font-size: 75%" class="card-title">{{obj.get('TITLE')[0]}}</p>
+        </div>
+        </div>
+    </div>
+    {% endfor %}
+    </div>
+
+</div>
+{% endblock searchresults %}

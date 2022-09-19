@@ -2,27 +2,291 @@
 
 {% block head_last%}
 <script src="/static/openseadragon-2.4.2/openseadragon.min.js"></script>
+<script type="module">import * as new_item from '/static/new_item/new_item.js';</script>
 {% endblock %}
 
 {% block content %}
-<div class="container-fluid" style="padding: 0;">
-        <div class="row p-4">
+<div class="container-fluid" style="padding: 1vh 1vw 5vh 2vw;">
+        <div class="row">
             <div class="col">
-                <a class="btn btn-info" href="#">Edit</a>        
-                <a class="btn btn-danger" href="#">Delete</a>
-                <a class="btn btn-success" href="#">Request Help</a>
-                <a class="btn btn-secondary" href="#">Comment</a>
+                <a class="btn btn-sm btn-warning" href="#">Save this item</a>                
             </div>
             <div class="col">
-                <a href="https://www.cerl.org/resources/provenance/pdaguidelines">Instructions</a>
+                <a class="btn btn-sm btn-primary" href="https://www.cerl.org/resources/provenance/pdaguidelines">Instructions</a>
             </div>
         </div>
 
 
-    <div class="row" style="text-align: center; padding: 1vw 2vw 0 2vw">
+    <div class="row mt-4">
+        <div class="col-8">
 
-        <h1>New Item</h1>
+            <div class="mb-3 d-flex align-items-center">
+                <input type="text" id="source_url" class="form-control  form-control-sm" placeholder="Source URI: Link to HPB, MEI, ISTC or OPAC - if known." />
+                <div id="source_url_spinner" class="spinner-border ms-auto" role="status" aria-hidden="true" style="display: none"></div>
+            </div>
 
+            <div class="mb-3">
+                <label class="form-label" for="caption">Caption/Description</label>
+                <textarea id="caption" rows=4 class="form-control form-control-sm" placeholder="A short caption or description of this item"></textarea>
+            </div>
+
+<div class="modal fade" id="institution_modal" tabindex="-1" aria-labelledby="institution_modal_label" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-scrollable modal-lg">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="institution_modal_label">Institution Name</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body">
+        <input class="ct_modal_search" type="text" ct_tipe="institution" ct_target="institution_modal_searchresults" id="institution_modal_search" size="60" placeholder="Type (part of) a name of an institution">
+        <div id="institution_modal_searchresults" style="min-height: 30vh"></div>
+        <div class="m-2">
+            Lookups are done in the <a target="_new" href="https://data.cerl.org/thesaurus/">CERL Thesaurus</a>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="modal fade" id="place_modal" tabindex="-1" aria-labelledby="place_modal_label" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-scrollable modal-lg">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="place_modal_label">Place(s) of use</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body">
+        <input class="ct_modal_search" type="text" ct_tipe="place" ct_target="place_modal_searchresults" id="place_modal_search" size="60" placeholder="Type (part of) a place name">
+        <div id="place_modal_searchresults" style="min-height: 30vh"></div>
+        <div class="m-2">
+            Lookups are done in the <a target="_new" href="https://data.cerl.org/thesaurus/">CERL Thesaurus</a>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="modal fade" id="person_modal" tabindex="-1" aria-labelledby="person_modal_label" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-scrollable modal-lg">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="person_modal_label">Former owner(s)</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body">
+        <input class="ct_modal_search" type="text" ct_tipe="person" ct_target="person_modal_searchresults" id="person_modal_search" size="60" placeholder="Type (part of) a person name">
+        <div id="person_modal_searchresults" style="min-height: 30vh"></div>
+        <div class="m-2">
+            Lookups are done in the <a target="_new" href="https://data.cerl.org/thesaurus/">CERL Thesaurus</a>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+
+
+            <div class="mb-3">
+                <a id="institution_name" href="#" class="btn btn-secondary" data-bs-toggle="modal" data-bs-target="#institution_modal">Institution Name</a>
+            </div>
+
+            <div class="mb-3">
+                <label class="form-label" for="shelfmark">Shelfmark of the provenance</label>
+                <input type="text" id="shelfmark" class="form-control  form-control-sm" placeholder="Enter a shelfmark here if not automatically provided by the source URI"/>
+            </div>
+
+            <div class="mb-3">
+              <div class="dropdown">
+                <a class="btn btn-secondary dropdown-toggle" href="#" role="button" id="kindofprovenance" data-bs-toggle="dropdown" aria-expanded="false">Kind of provenance</a>
+                <ul class="dropdown-menu" aria-labelledby="kindofprovenance">
+                    <li><a class="dropdown-item" href="#">Unknown</a></li>
+                    <li><a class="dropdown-item" href="#">Binding</a></li>
+                    <li><a class="dropdown-item" href="#">Bookseller’s label</a></li>
+                    <li><a class="dropdown-item" href="#">Coat of arms</a></li>
+                    <li><a class="dropdown-item" href="#">(De)accession mark</a></li>
+                    <li><a class="dropdown-item" href="#">Decoration</a></li>
+                    <li><a class="dropdown-item" href="#">Ex-Libris</a></li>
+                    <li><a class="dropdown-item" href="#">Manuscript annotations / marginalia</a></li>
+                    <li><a class="dropdown-item" href="#">Monogram</a></li>
+                    <li><a class="dropdown-item" href="#">Motto</a></li>
+                    <li><a class="dropdown-item" href="#">Old shelfmark</a></li>
+                    <li><a class="dropdown-item" href="#">Ownership inscription</a></li>
+                    <li><a class="dropdown-item" href="#">Purchase information / prices</a></li>
+                    <li><a class="dropdown-item" href="#">Stamp</a></li>
+                    <li><a class="dropdown-item" href="#">Supralibros</a></li>
+                </ul>
+              </div>
+            </div>
+
+            <div class="mb-3">
+              <div class="dropdown">
+                <a class="btn btn-secondary dropdown-toggle" href="#" role="button" id="location_source" data-bs-toggle="dropdown" aria-expanded="false">Location in source</a>
+                <ul class="dropdown-menu" aria-labelledby="location_source">
+                    <li><a class="dropdown-item" href="#">Page number</a></li>
+                    <li><a class="dropdown-item" href="#">Front cover</a></li>
+                    <li><a class="dropdown-item" href="#">Back cover</a></li>
+                    <li><a class="dropdown-item" href="#">Front pastedown</a></li>
+                    <li><a class="dropdown-item" href="#">Back pastedown</a></li>
+                    <li><a class="dropdown-item" href="#">Front endleaves</a></li>
+                    <li><a class="dropdown-item" href="#">Back endleaves</a></li>
+                    <li><a class="dropdown-item" href="#">Text block (add folio number in Notes field)</a></li>
+                    <li><a class="dropdown-item" href="#">Spine</a></li>
+                    <li><a class="dropdown-item" href="#">Upper edge</a></li>
+                    <li><a class="dropdown-item" href="#">Lower edge</a></li>
+                    <li><a class="dropdown-item" href="#">Fore-edge</a></li>
+                    <li><a class="dropdown-item" href="#">Title page</a></li>
+                </ul>
+              </div>
+            </div>
+
+            
+            
+            
+
+          </div>        
+        <div class="col-4">            
+            <input type="file" id="filechooser" class="form-control form-control-sm" />
+            <label class="form-label" for="filechooser">Upload image</label>
+        </div>
+    </div>
+
+    <div class="row" style="">
+        <div class="col-8">
+        <h2>Bibliographic details</h2>
+
+        
+            <div class="mb-3">
+                <label class="form-label" for="title">Title</label>
+                <input size="80" type="text" id="title" class="form-control form-control-sm" />
+            </div>        
+            <div class="mb-3">
+                <label class="form-label" for="author">Author</label>
+                <input size="80" type="text" id="author" class="form-control form-control-sm" />
+            </div>
+            <div class="mb-3">
+                <label class="form-label" for="imprint">Imprint</label>
+                <input size="80" type="text" id="imprint" class="form-control form-control-sm" />
+            </div>
+            
+            
+
+        
+        
+        
+        </div>
+    </div>
+
+    <div class="row mb-3" >
+        <div class="col-8">
+        <h2>Description of the provenance</h2>
+
+        <div class="mb-3">
+            <label class="form-label" for="transcription">Transcription</label>
+            <textarea id="transcription" rows=4 class="form-control form-control-sm" placeholder="(of the inscription, if any)"></textarea>
+        </div>
+
+            <div class="mb-3">
+              <div class="dropdown">
+                <a class="btn btn-secondary dropdown-toggle" href="#" role="button" id="language" data-bs-toggle="dropdown" aria-expanded="false">Language</a>
+                <ul class="dropdown-menu" aria-labelledby="language">
+                    <li><a class="dropdown-item" href="#" data-code="en">English</a></li>
+                    <li><a class="dropdown-item" href="#" data-code="de">German</a></li>
+                    <li><a class="dropdown-item" href="#" data-code="fr">French</a></li>
+                    <li><a class="dropdown-item" href="#" data-code="nl">Dutch</a></li>
+                    <li><a class="dropdown-item" href="#" data-code="it">Italian</a></li>
+                    <li><a class="dropdown-item" href="#" data-code="la">Latin</a></li>
+                    <li><a class="dropdown-item" href="#" data-code="gr">Greek</a></li>
+                    <li><a class="dropdown-item" href="#" data-code="he">Hebrew</a></li>
+                </ul>
+              </div>
+            </div>
+        
+            <div class="mb-3">
+              <div class="dropdown">
+                <a class="btn btn-secondary dropdown-toggle" href="#" role="button" id="century" data-bs-toggle="dropdown" aria-expanded="false">Century</a>
+                <ul class="dropdown-menu" aria-labelledby="century">
+                    <li><a class="dropdown-item" href="#" data-code="14">14th</a></li>
+                    <li><a class="dropdown-item" href="#" data-code="15">15th</a></li>
+                    <li><a class="dropdown-item" href="#" data-code="16">16th</a></li>
+                    <li><a class="dropdown-item" href="#" data-code="17">17th</a></li>
+                    <li><a class="dropdown-item" href="#" data-code="18">18th</a></li>
+                    <li><a class="dropdown-item" href="#" data-code="19">19th</a></li>
+                    <li><a class="dropdown-item" href="#" data-code="20">20th</a></li>
+                </ul>
+              </div>
+            </div>
+
+            <div class="mb-3">
+              <div class="dropdown">
+                <a class="btn btn-secondary dropdown-toggle" href="#" role="button" id="technique" data-bs-toggle="dropdown" aria-expanded="false">Technique</a>
+                <ul class="dropdown-menu" aria-labelledby="technique">
+                    <li><a class="dropdown-item" href="#" data-code="Unidentified">Unidentified</a></li>
+                    <li><a class="dropdown-item" href="#" data-code="Blind Stamp">Blind Stamp</a></li>
+                    <li><a class="dropdown-item" href="#" data-code="Drawings">Drawings</a></li>
+                    <li><a class="dropdown-item" href="#" data-code="Firestamp">Firestamp</a></li>
+                    <li><a class="dropdown-item" href="#" data-code="Gold">Gold</a></li>
+                    <li><a class="dropdown-item" href="#" data-code="Illumination">Illumination</a></li>
+                    <li><a class="dropdown-item" href="#" data-code="Ink">Ink</a></li>
+                    <li><a class="dropdown-item" href="#" data-code="Pencil">Pencil</a></li>
+                    <li><a class="dropdown-item" href="#" data-code="Printed">Printed</a></li>
+                    <li><a class="dropdown-item" href="#" data-code="Silver">Silver</a></li>
+                    <li><a class="dropdown-item" href="#" data-code="Stamp">Stamp</a></li>
+                    <li><a class="dropdown-item" href="#" data-code="other">Other (Specify in Notes field)</a></li>
+                </ul>
+              </div>
+            </div>
+
+                ICONCLASS
+
+
+        <div class="row mb-2">
+            <div class="col-6">
+                <input size="20" type="text" id="date" class="form-control form-control-sm" placeholder="Date (as exact as possible)"/>
+            </div>
+        </div>
+        
+
+        <div class="row">
+            <div class="col">                
+                <input size="10" type="text" id="width" class="form-control form-control-sm" placeholder="Width (in cm)"/>
+            </div>
+            <div class="col">
+                <input size="10" type="text" id="height" class="form-control form-control-sm" placeholder="Height (in cm)"/>
+            </div>
+        </div>
+
+         
+        </div>
+    </div>
+
+    <div class="row mt-2">
+
+        <div class="mb-3">
+            <a id="places" href="#" class="btn btn-secondary" data-bs-toggle="modal" data-bs-target="#place_modal">Place(s) of use</a>
+        </div>
+
+        <div class="mb-3">
+            <a id="owners" href="#" class="btn btn-secondary" data-bs-toggle="modal" data-bs-target="#person_modal">Former Owner(s)</a>
+        </div>
+        
+        
+        
+        
+    </div>
+
+    <div class="row">
+        <div class="col">
+            <a class="btn btn-sm btn-warning" href="#">Save this item</a>
+        </div>
     </div>
 
 

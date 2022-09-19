@@ -159,7 +159,7 @@ async def fragments_institution_search(
             row["name"] = row["placeName"][0]
 
     response = templates.TemplateResponse(
-        "fragments_institution_search.html",
+        "fragments_modal_search.html",
         {
             "request": request,
             "data": rows,

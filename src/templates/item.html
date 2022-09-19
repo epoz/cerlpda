@@ -23,6 +23,7 @@
                 <a class="btn btn-sm btn-danger" href="#">Delete</a>
                 <a class="btn btn-sm btn-success" href="#">Request Help</a>
                 <a class="btn btn-sm btn-secondary" href="#">Comment</a>
+                <a class="btn btn-sm btn-secondary" href="/id/{{obj['ID'][0]}}.raw">Raw</a>
             </div>
             {% if "OWNER" in obj %}
             <div class="col"><span class="hed">Uploaded by:</span>{{obj["OWNER"][1]}}</div>            {% endif %}
@@ -32,6 +33,7 @@
 
     <div class="row" style="padding: 1vw 2vw 0 2vw">
         <div style="font-size: 150%">{{snip(*TF("OWNERS_CERLID"))}}</div>
+        <div style="margin-bottom: 1vh">{{snip(*TF("TITLE"))}}</div>
         <div>{{snip(*TF("CAPTION"))}}</div>
         <div>{{snip(*TF("TEXT"))}}</div>
         <div>{{snip(*TF("PERSON_AUTHOR"))}} {{snip(*TF("IMPRINT"))}}</div>
@@ -41,12 +43,11 @@
         {{vv}} {% if not loop.last %}, {% endif %}{% endfor %}</div>{% endif %}
         <div>{{snip(*TF("PAGE"))}}</div>
         <div>{{snip(*TF("TYPE_INS"))}} {{snip(*TF("TECHNIQUE"))}}</div>
+        <div>{{snip(*TF("WIDTH"))}} {{snip(*TF("HEIGHT"))}}</div>
         {% if obj["URL_WEBPAGE"] %}
         <div style="text-align: right">
         See:  <a href="{{obj["URL_WEBPAGE"][0]}}">{{obj["URL_WEBPAGE"][0]}}</a></div>
         {% endif %}
-
-        <h2 style="margin-top: 1ch">{{snip(*TF("TITLE"))}}</h2>
 
         <div id="thedzi1" style="height: 60vh; width: 100%; margin: 0 auto; border-top: 4px solid #ddd;"></div>
 

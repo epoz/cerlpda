@@ -4,6 +4,15 @@ author = document.getElementById("author")
 shelfmark = document.getElementById("shelfmark")
 
 
+def find_attr_parents(element, attr):
+    val = element.getAttribute(attr)
+    if val and len(val) > 0:
+        return val
+    parent = element.parentElement
+    if parent:
+        return find_attr_parents(parent, attr)
+
+
 async def source_url(event):
     event.preventDefault()
     if document.source_url_bounce > 0:
@@ -76,6 +85,28 @@ async def do_ISTC(url):
             author.value = data.author
 
 
+async def modal_click_handler(event):
+    field = event.target.getAttribute("data-field")
+    value = event.target.getAttribute("data-value")
+    target = event.target.getAttribute("data-target")
+    if field and value:
+        document.obj[field] = [value]
+        set_the(field, target, True)
+
+
+async def dropdown_click_handler(event):
+    value = find_attr_parents(event.target, "data-code")
+    if not value:
+        value = event.target.innerHTML
+    field = find_attr_parents(event.target, "data-field")
+    target = find_attr_parents(event.target, "data-target")
+
+    if field and value:
+        document.obj[field] = [value]
+        set_the(field, target, True)
+        event.preventDefault()
+
+
 async def modal_search_handler(event):
     event.preventDefault()
     document.ct_tipe = event.target.getAttribute("ct_tipe")
@@ -88,7 +119,6 @@ async def modal_search_handler(event):
 
 
 async def do_modal_search():
-
     result = await fetch(
         "/fragments/modal_search?q="
         + encodeURI(document.ct_value)
@@ -99,10 +129,63 @@ async def do_modal_search():
     document.getElementById(document.ct_target).innerHTML = response
 
 
+LANGUAGES = {
+    "en": "English",
+    "de": "German",
+    "fr": "French",
+    "nl": "Dutch",
+    "it": "Italian",
+    "la": "Latin",
+    "gr": "Greek",
+    "he": "Hebrew",
+    "_": "Unknown",
+}
+
+
+def set_the(field, dest, is_modal=False):
+    if field not in document.obj:
+        return
+    elem = document.querySelector(dest)
+    val = document.obj[field][0]
+    if field.endswith("_CERLID"):
+        tmp = val.split("|")
+        val = tmp[1]
+    elif field == "LANG":
+        val = LANGUAGES[val]
+    if is_modal:
+        elem.innerHTML = val
+    else:
+        elem.value = val
+
+
 async def init():
     document.getElementById("source_url").addEventListener("keyup", source_url)
     for item in document.querySelectorAll(".ct_modal_search"):
         item.addEventListener("keyup", modal_search_handler)
+    for item in document.querySelectorAll(".modal"):
+        item.addEventListener("click", modal_click_handler)
+    for item in document.querySelectorAll(".dropdown-item"):
+        item.addEventListener("click", dropdown_click_handler)
+
+    if document.objId:
+        result = await fetch("/id/" + document.objId + ".json")
+        document.obj = await result.json()
+        set_the("URL_WEBPAGE", "#source_url")
+        set_the("CAPTION", "#caption")
+        set_the("TITLE", "#title")
+        set_the("PERSON_AUTHOR", "#author")
+        set_the("IMPRINT", "#imprint")
+        set_the("TEXT", "#transcription")
+        set_the("SHELFMARK", "#shelfmark")
+        set_the("DATE_ORIG", "#date")
+        set_the("WIDTH", "#width")
+        set_the("HEIGHT", "#height")
+        # set_the("", "#")
+        set_the("INSTIT_CERLID", "#institution", True)
+        set_the("TYPE_INS", "#kindofprovenance", True)
+        set_the("PAGE", "#location_source", True)
+        set_the("LANG", "#language", True)
+        set_the("TECHNIQUE", "#technique", True)
 
 
 window.addEventListener("load", init)

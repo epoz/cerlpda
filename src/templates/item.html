@@ -1,8 +1,14 @@
 {% extends "base.html" %}
 
-{% macro snip(title, text) %}
-{% if text %}{% if title %}<span class="hed">{{title}}: </span>{% endif %}{{text}}{% endif %}
+{% macro snip(field, title, text) %}
+{% if field == 'INSTIT_CERLID' %}
+    {% if text %}{% if title %}<span class="hed">{{title}}: </span>{% endif %}{{text|cerl_holdinst}}{% endif %}
+{% else %}
+    {% if text %}{% if title %}<span class="hed">{{title}}: </span>{% endif %}{{text|cerl_thesaurus}}{% endif %}
+{% endif %}
 {% endmacro %}
+
+
 
 {% block title %}CERL PDA · {{obj["ID"][0]}}{% endblock title %}
 
@@ -16,10 +22,10 @@
 {% endblock %}
 
 {% block content %}
-<div class="container-fluid" style="padding: 0;">
+<div class="container-fluid" style="padding: 1vh 1vw 5vh 5vw;">
         <div class="row p-4">
             <div class="col">
-                <a class="btn btn-sm btn-info" href="#">Edit</a>        
+                <a class="btn btn-sm btn-info" href="/edit/{{obj['ID'][0]}}">Edit</a>        
                 <a class="btn btn-sm btn-danger" href="#">Delete</a>
                 <a class="btn btn-sm btn-success" href="#">Request Help</a>
                 <a class="btn btn-sm btn-secondary" href="#">Comment</a>
@@ -62,6 +68,7 @@ async function doInits() {
         prefixUrl: '/static/openseadragon-2.4.2/images/',
         showNavigator: false,
         showFullPageControl: true,
+        showRotationControl: true,
         maxZoomPixelRatio: 999,
         tileSources: [
             { x: 0, y: 0, width: 1000,             

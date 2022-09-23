@@ -23,7 +23,7 @@ field_titles = {
     "OWNERS_CERLID": "Owner",
     "CAPTION": "Description",
     "TEXT": "Transcription",
-    "PERSON_AUTHOR": "Source",
+    "PERSON_AUTHOR": "Author",
     "INSTIT_CERLID": "Institution",
     "SHELFMARK": "Shelfmark",
     "LOCATION_ORIG_CERLID": "Place of use",
@@ -42,10 +42,10 @@ field_titles = {
 def TF(obj):
     def _TF(field):
         if field not in obj:
-            return "", ""
+            return field, "", ""
         t = field_titles.get(field, "")
         v = " ".join(obj.get(field, []))
-        return t, v
+        return field, t, v
 
     return _TF
 
@@ -82,11 +82,19 @@ def strip_cerlid(value):
     return rest
 
 
-# A Jinja filter to turn a | separated value into a CERL Thesarus link
-def cerl_thesaurus(value):
+# A Jinja filter to turn a | separated value into a CERL databases links
+def to_link(uri, value):
     tmp = value.split("|")
     if len(tmp) < 2:
         return value
     cerlid = tmp[0]
     rest = "|".join(tmp[1:])
-    return Markup(f"<a href='https://data.cerl.org/thesaurus/{cerlid}'>{rest}</a>")
+    return Markup(f"<a target='_cerl' href='{uri}{cerlid}'>{rest}</a>")
+
+
+def cerl_holdinst(value):
+    return to_link("https://data.cerl.org/holdinst/", value)
+
+
+def cerl_thesaurus(value):
+    return to_link("https://data.cerl.org/thesaurus/", value)

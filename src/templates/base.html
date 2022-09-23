@@ -27,7 +27,7 @@
                     <a href="/" class="nav-link px-2 text-light">Search</a>
                 </li>
                 <li>
-                    <a href="/new/" class="nav-link px-2 text-warning">Upload New Item</a>
+                    <a href="/edit/new" class="nav-link px-2 text-warning">Upload New Item</a>
                 </li>
                 <li>
                     <a href="/canyouhelp/" class="nav-link px-2 text-warning">Can You Help?</a>
@@ -37,7 +37,7 @@
                 </li>
                 <li>{% block login %}
                     {% if request.user.is_authenticated %}
-                        <a href="/logout" type="button" class="nav-link px-2 text-light">Logout {{request.user.username}}</a>
+                        <a href="/logout" type="button" class="nav-link px-2 text-light" title="{{request.user.username}}">Logout</a>
                     {% else %}
                         <a href="/login" type="button" class="nav-link px-2 text-light">⁂ Login/Register</a>
                     {% endif %}{% endblock%}

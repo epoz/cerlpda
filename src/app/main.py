@@ -9,15 +9,14 @@ from hashlib import md5
 import databases, os, json, random
 from urllib.parse import quote_plus
 import markdown, httpx
-from .util import TF, load, strip_cerlid, get, cerl_thesaurus
+from .util import TF, load, strip_cerlid, get, cerl_thesaurus, cerl_holdinst
 
 database = databases.Database(DATABASE_URL)
 
 app = FastAPI(openapi_url="/openapi")
 app.mount("/static", StaticFiles(directory="static"), name="static")
 templates = Jinja2Templates(directory="templates")
-templates.env.filters["strip_cerlid"] = strip_cerlid
-templates.env.filters["cerl_thesaurus"] = cerl_thesaurus
+
 
 app.add_middleware(
     CORSMiddleware,
@@ -72,12 +71,13 @@ async def canyouhelp(request: Request):
     return response
 
 
-@app.get("/new", response_class=HTMLResponse, include_in_schema=False)
-async def new_item(request: Request):
+@app.get("/edit/{anid:str}", include_in_schema=False)
+async def edit_item(request: Request, anid: str):
     response = templates.TemplateResponse(
-        "new_item.html",
+        "edit_item.html",
         {
             "request": request,
+            "anid": anid,
         },
     )
     return response
@@ -107,9 +107,11 @@ def render_obj_with(request: Request, obj, template_name):
     if user and len(user) > 0:
         user = get_user_fromdb(user[0])
         obj["OWNER"] = user
-    else:
+    elif "OWNER" in obj:
         del obj["OWNER"]
 
+    templates.env.filters["cerl_thesaurus"] = cerl_thesaurus
+    templates.env.filters["cerl_holdinst"] = cerl_holdinst
     response = templates.TemplateResponse(
         template_name,
         {"request": request, "obj": obj, "TF": TF(obj)},
@@ -122,15 +124,18 @@ def render_obj_with(request: Request, obj, template_name):
     response_class=HTMLResponse,
     include_in_schema=False,
 )
-async def fragments_institution_search(
+async def fragments_modal_search(
     request: Request, q: str = "", tipe: str = "institution", size: int = 20
 ):
-
+    field = "INSTIT_CERLID"
+    target = "#institution"
     if tipe == "institution":
         url = f"https://data.cerl.org/holdinst/_search?size=100&query={quote_plus(q)}&format=json"
     elif tipe == "person":
+        field = "OWNERS_CERLID"
         url = f"https://data.cerl.org/thesaurus/_search?size=100&query=name%3A${quote_plus(q)}+AND+type%3A%28cnc+OR+cnp%29&format=json"
     elif tipe == "place":
+        field = "LOCATION_ORIG_CERLID"
         url = f"https://data.cerl.org/thesaurus/_search?size=100&query=name%3A{quote_plus(q)}%20AND%20type:cnl&format=json"
 
     r = httpx.get(url)
@@ -162,6 +167,8 @@ async def fragments_institution_search(
         "fragments_modal_search.html",
         {
             "request": request,
+            "field": field,
+            "target": target,
             "data": rows,
         },
     )

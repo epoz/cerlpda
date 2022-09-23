@@ -1,7 +1,7 @@
 {% if data  %}
     {% for row in data %}
     <div class="row m-1">
-        <a data-bs-dismiss="modal" class="btn btn-sm btn-secondary" href="#" title="{{row.id}}">{{row.name}}</a>
+        <a data-target="{{target}}" data-value="{{row.id}}|{{row.name}}" data-field="{{field}}" data-bs-dismiss="modal" class="btn btn-sm btn-secondary" href="#" title="{{row.id}}">{{row.name}}</a>
     </div>
     {% endfor %}
 {% else %}

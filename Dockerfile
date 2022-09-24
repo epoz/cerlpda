@@ -3,6 +3,7 @@ FROM node:16 as stylebuild
 WORKDIR /home
 
 COPY src/style/package.json .
+COPY src/style/package-lock.json .
 COPY src/style/webpack.config.js .
 COPY src/style/src ./src
 
@@ -34,4 +35,4 @@ COPY --from=transcrypt /home/homepage /home/src/static/homepage
 
 WORKDIR /home/src
 
-CMD ["uvicorn", "--port", "50011", "--host", "127.0.0.1", "app:app"]
+CMD ["uvicorn", "--port", "8000", "--host", "0.0.0.0", "app:app"]

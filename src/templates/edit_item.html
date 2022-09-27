@@ -10,8 +10,8 @@
 <div class="container-fluid" style="padding: 1vh 1vw 5vh 5vw;">
     <div class="row" style="margin-bottom: 1vh; border-bottom: 2px solid #ddd; padding-bottom: 1vh">
         <div class="col-8">
-            <a class="btn btn-warning" href="#">Save this item</a>
-            <a class="btn btn-secondary" href="#">Cancel editing</a>
+            <a class="btn btn-warning" href="/id/{{anid}}">Save this item</a>
+{% if anid != "_" %}            <a class="btn btn-secondary" href="/id/{{anid}}">Cancel editing</a>{% endif %}
         </div>
         <div class="col">
             <a class="btn" href="https://www.cerl.org/resources/provenance/pdaguidelines">Uploading Instructions</a>
@@ -24,6 +24,14 @@
     <div class="row mt-4">
         <div class="col-8">
 
+            <label class="form-label" for="filechooser">Upload image</label>
+            <input type="file" id="filechooser" class="form-control form-control-sm" />
+            
+            <div id="fileupload_spinner" class="spinner-border ms-auto" role="status" aria-hidden="true" style="display: none"></div>
+            <div id="image_thumbnails" style="margin: 2vh 0 2vh 0">            
+            </div>
+
+
             <div class="mb-3 d-flex align-items-center">
                 <input type="text" id="source_url" class="form-control  form-control-sm" placeholder="Source URI: Link to HPB, MEI, ISTC or OPAC - if known." />
                 <div id="source_url_spinner" class="spinner-border ms-auto" role="status" aria-hidden="true" style="display: none"></div>
@@ -32,10 +40,8 @@
             <div class="mb-3">
                 <textarea id="caption" rows=2 class="form-control form-control-sm" placeholder="A short caption or description of this item"></textarea>
             </div>
-        </div>
-        <div class="col-4">            
-            <input type="file" id="filechooser" class="form-control form-control-sm" />
-            <label class="form-label" for="filechooser">Upload image</label>
+
+
         </div>
     </div>
 
@@ -254,13 +260,15 @@
                 </ul>
               </div>
             </div>
-        
+
+     
+
             <div class="row mb-1">
                 <div class="col-3">Centuries Used</div>            
                 <div class="col-9">
                 {% for c in range(14, 21, 1)  %}
                 <div class="form-check form-check-inline">
-                <input class="form-check-input" type="checkbox" id="century_{{c}}" value="{{c}}">
+                <input {% if c|string in obj['DATE_ORIG_CENTURY'] %}checked="1"{% endif %} data-dest="DATE_ORIG_CENTURY" class="form-check-input century_choice" type="checkbox" id="century_{{c}}" data-value="{{c}}">
                 <label class="form-check-label" for="century_{{c}}">{{c}}th</label>
                 </div>
                 {% endfor %}
@@ -304,7 +312,7 @@
         <div class="row mb-1">
             <div class="col-1">Date</div>
             <div class="col-6">
-                <input size="20" type="text" id="date" class="form-control form-control-sm" placeholder="Date (as exact as possible)"/>
+                <input size="20" type="text" id="date" class="form-control form-control-sm" placeholder="(as exact as possible)"/>
             </div>
         </div>
         
@@ -314,7 +322,7 @@
                 <div class="row">
                     <div class="col-2">Width</div>
                     <div class="col-3" title="(in cm)">                
-                        <input size="10" type="text" id="width" class="form-control form-control-sm" placeholder="Width (in cm)"/>
+                        <input size="10" type="text" id="width" class="form-control form-control-sm" placeholder="(cm)"/>
                     </div>
                 </div>
             </div>
@@ -323,7 +331,7 @@
                 <div class="row">
                     <div class="col-2">Height</div>
                     <div class="col-3" title="(in cm)">
-                        <input size="10" type="text" id="height" class="form-control form-control-sm" placeholder="Height (in cm)"/>
+                        <input size="10" type="text" id="height" class="form-control form-control-sm" placeholder="(cm)"/>
                     </div>
                 </div>
             </div>
@@ -337,20 +345,22 @@
 
     <div class="row mt-2">
         <div class="mb-3">
-            <a id="places" href="#" class="btn" data-bs-toggle="modal" data-bs-target="#place_modal">Place(s) of use
+            <a href="#" class="btn" data-bs-toggle="modal" data-bs-target="#place_modal">Place(s) of use
                 <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-search" viewBox="0 0 16 16">
                         <path d="M11.742 10.344a6.5 6.5 0 1 0-1.397 1.398h-.001c.03.04.062.078.098.115l3.85 3.85a1 1 0 0 0 1.415-1.414l-3.85-3.85a1.007 1.007 0 0 0-.115-.1zM12 6.5a5.5 5.5 0 1 1-11 0 5.5 5.5 0 0 1 11 0z"/>
                 </svg>
             </a>
+            <div style="display: inline" id="places"></div>
 
         </div>
 
         <div class="mb-3">
-            <a id="owners" href="#" class="btn" data-bs-toggle="modal" data-bs-target="#person_modal">Former Owner(s)
+            <a href="#" class="btn" data-bs-toggle="modal" data-bs-target="#person_modal">Former Owner(s)
                 <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-search" viewBox="0 0 16 16">
                         <path d="M11.742 10.344a6.5 6.5 0 1 0-1.397 1.398h-.001c.03.04.062.078.098.115l3.85 3.85a1 1 0 0 0 1.415-1.414l-3.85-3.85a1.007 1.007 0 0 0-.115-.1zM12 6.5a5.5 5.5 0 1 1-11 0 5.5 5.5 0 0 1 11 0z"/>
                 </svg>
             </a>
+            <div style="display: inline" id="owners"></div>
         </div>        
     </div>
 

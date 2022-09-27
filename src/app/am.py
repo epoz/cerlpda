@@ -136,6 +136,14 @@ def get_user_from_token(token: str):
     return User(username=username, name=name)
 
 
+async def authenticated_user(request: Request):
+    access_token = request.cookies.get("access_token")
+    if access_token:
+        return get_user_from_token(access_token)
+    else:
+        raise credentials_exception
+
+
 @app.get("/users/me", response_model=User, include_in_schema=False)
 async def read_users_me(current_user: User = Depends(get_current_user)):
     return current_user

@@ -5,7 +5,7 @@ showrandom = document.getElementById("showrandom")
 
 async def update_grid():
     grid = document.querySelector(".grid")
-    if grid:
+    if grid and grid.masonry:
         grid.masonry.reloadItems()
         grid.masonry.layout()
 

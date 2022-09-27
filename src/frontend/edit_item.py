@@ -85,13 +85,115 @@ async def do_ISTC(url):
             author.value = data.author
 
 
+trash = """<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-trash3-fill" viewBox="0 0 16 16">
+  <path d="M11 1.5v1h3.5a.5.5 0 0 1 0 1h-.538l-.853 10.66A2 2 0 0 1 11.115 16h-6.23a2 2 0 0 1-1.994-1.84L2.038 3.5H1.5a.5.5 0 0 1 0-1H5v-1A1.5 1.5 0 0 1 6.5 0h3A1.5 1.5 0 0 1 11 1.5Zm-5 0v1h4v-1a.5.5 0 0 0-.5-.5h-3a.5.5 0 0 0-.5.5ZM4.5 5.029l.5 8.5a.5.5 0 1 0 .998-.06l-.5-8.5a.5.5 0 1 0-.998.06Zm6.53-.528a.5.5 0 0 0-.528.47l-.5 8.5a.5.5 0 0 0 .998.058l.5-8.5a.5.5 0 0 0-.47-.528ZM8 4.5a.5.5 0 0 0-.5.5v8.5a.5.5 0 0 0 1 0V5a.5.5 0 0 0-.5-.5Z"/>
+</svg>
+"""
+
+
+async def remove_val(event):
+    val = find_attr_parents(event.target, "data-value")
+    field = find_attr_parents(event.target, "data-field")
+    dest = find_attr_parents(event.target, "data-dest")
+    if val and field:
+        NEW = [x for x in document.obj[field] if x != val]
+        document.obj[field] = NEW
+    set_the(field, dest, False, True)
+    event.preventDefault()
+
+
+async def remove_image(event):
+    to_remove = find_attr_parents(event.target, "data-filename")
+    if to_remove:
+        URL_IMAGE = []
+        for x in dict(document.obj).get("URL_IMAGE", []):
+            if x != to_remove:
+                URL_IMAGE.add(x)
+        document.obj["URL_IMAGE"] = URL_IMAGE
+        showthumbnails()
+    event.preventDefault()
+
+
+async def showthumbnails():
+    thumbs = document.getElementById("image_thumbnails")
+    thumbs.innerHTML = ""
+    for x in dict(document.obj).get("URL_IMAGE", []):
+        i = document.createElement("img")
+        i.src = "/iiif/2/" + x + "/full/200,/0/default.jpg"
+        i.style["margin-right"] = "4px"
+        thumbs.appendChild(i)
+        t = document.createElement("div")
+        t.style.display = "inline"
+        t.style["margin-right"] = "2vw"
+        t.style.cursor = "pointer"
+        t.innerHTML = trash
+        t.setAttribute("data-filename", x)
+        t.addEventListener("click", remove_image)
+        thumbs.appendChild(t)
+
+
+async def radio_choice(event):
+    value = find_attr_parents(event.target, "data-value")
+    dest = find_attr_parents(event.target, "data-dest")
+    CURRENT = document.obj.get(dest, [])
+
+    console.log(event.target.checked, dest, value)
+    if event.target.checked:
+        if value not in CURRENT:
+            CURRENT.append(value)
+            document.obj[dest] = CURRENT
+    if not event.target.checked:
+        if value in CURRENT:
+            NEW = [x for x in CURRENT if x != value]
+            document.obj[dest] = NEW
+
+
+async def filechosen(event):
+    # post the file to /api/upload
+    # and set the returned hashfilename to the data here (if not already in the URL_IMAGE)
+    fileupload_spinner = document.getElementById("fileupload_spinner")
+    fileupload_spinner.style.display = "block"
+    try:
+        filechooser = document.getElementById("filechooser")
+        img = filechooser.files[0]
+        form_data = __new__(FormData)
+        form_data.append("file", img)
+        result = await fetch(
+            "/api/upload",
+            {"method": "POST", "credentials": "same-origin", "body": form_data},
+        )
+        response = await result.json()
+        if "hash_filename" in response:
+            hash_filename = response["hash_filename"] + ".jpg"
+            # Check if this returned hash is in the obj
+            URL_IMAGE = document.obj.get("URL_IMAGE", [])
+            if hash_filename not in URL_IMAGE:
+                URL_IMAGE.append(hash_filename)
+                document.obj["URL_IMAGE"] = URL_IMAGE
+            showthumbnails()
+        else:
+            document.getElementById("image_thumbnails").innerHTML = response.detail
+
+    except:
+        fileupload_spinner.style.display = "none"
+    fileupload_spinner.style.display = "none"
+
+
 async def modal_click_handler(event):
     field = event.target.getAttribute("data-field")
     value = event.target.getAttribute("data-value")
     target = event.target.getAttribute("data-target")
     if field and value:
-        document.obj[field] = [value]
-        set_the(field, target, True)
+        # Certain fields are multi
+        if field in ["OWNERS_CERLID", "LOCATION_ORIG_CERLID"]:
+            CURRENT = document.obj[field]
+            if value not in CURRENT:
+                CURRENT.append(value)
+            document.obj[field] = CURRENT
+            set_the(field, target, False, True)
+        else:
+            document.obj[field] = [value]
+            set_the(field, target, True)
 
 
 async def dropdown_click_handler(event):
@@ -142,26 +244,48 @@ LANGUAGES = {
 }
 
 
-def set_the(field, dest, is_modal=False):
+def set_the(field, dest, is_modal=False, is_multi=False):
     if field not in document.obj:
         return
     elem = document.querySelector(dest)
-    val = document.obj[field][0]
-    if field.endswith("_CERLID"):
-        tmp = val.split("|")
-        val = tmp[1]
-    elif field == "LANG":
-        val = LANGUAGES[val]
-    if is_modal:
-        elem.innerHTML = val
-    else:
-        elem.value = val
+    if is_multi:
+        elem.innerHTML = ""
+    for val in document.obj[field]:
+        showval = val
+        if field.endswith("_CERLID"):
+            tmp = val.split("|")
+            showval = tmp[1]
+        elif field == "LANG":
+            showval = LANGUAGES[val]
+        if is_modal:
+            elem.innerHTML = showval
+        elif is_multi:
+            s = document.createElement("span")
+            s.style.margin = "0 4px 0 0"
+            s.innerHTML = showval
+            elem.appendChild(s)
+            t = document.createElement("div")
+            t.style.display = "inline"
+            t.style["margin-right"] = "2vw"
+            t.style.cursor = "pointer"
+            t.innerHTML = trash
+            t.setAttribute("data-value", val)
+            t.setAttribute("data-field", field)
+            t.setAttribute("data-dest", dest)
+            t.addEventListener("click", remove_val)
+            elem.appendChild(t)
+        else:
+            elem.value = showval
 
 
 async def init():
     document.getElementById("source_url").addEventListener("keyup", source_url)
+    document.getElementById("filechooser").addEventListener("change", filechosen)
+
     for item in document.querySelectorAll(".ct_modal_search"):
         item.addEventListener("keyup", modal_search_handler)
+    for item in document.querySelectorAll(".century_choice"):
+        item.addEventListener("change", radio_choice)
     for item in document.querySelectorAll(".modal"):
         item.addEventListener("click", modal_click_handler)
     for item in document.querySelectorAll(".dropdown-item"):
@@ -186,6 +310,9 @@ async def init():
         set_the("PAGE", "#location_source", True)
         set_the("LANG", "#language", True)
         set_the("TECHNIQUE", "#technique", True)
+        set_the("OWNERS_CERLID", "#owners", False, True)
+        set_the("LOCATION_ORIG_CERLID", "#places", False, True)
+        showthumbnails()
 
 
 window.addEventListener("load", init)

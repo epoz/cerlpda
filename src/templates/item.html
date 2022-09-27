@@ -16,7 +16,7 @@
 <script src="/static/openseadragon-2.4.2/openseadragon.min.js"></script>
 <!--script type="module">import * as item from '/static/item/item.js';</script-->
 <style>
-.hed {font-family: Satyr Smallcaps; color: #888; margin-right: 1ch}
+.hed {font-variant: small-caps; color: #888; margin-right: 1ch}
 </style>
 
 {% endblock %}
@@ -27,7 +27,6 @@
             <div class="col">
                 <a class="btn btn-sm btn-info" href="/edit/{{obj['ID'][0]}}">Edit</a>        
                 <a class="btn btn-sm btn-danger" href="#">Delete</a>
-                <a class="btn btn-sm btn-success" href="#">Request Help</a>
                 <a class="btn btn-sm btn-secondary" href="#">Comment</a>
                 <a class="btn btn-sm btn-secondary" href="/id/{{obj['ID'][0]}}.raw">Raw</a>
             </div>
@@ -47,8 +46,8 @@
         <div>{{snip(*TF("LOCATION_ORIG_CERLID"))}}</div>        
         {% if obj["OWNERS"] %}<div><span class="hed">Former Owners:</span>{% for vv in obj["OWNERS"] %}
         {{vv}} {% if not loop.last %}, {% endif %}{% endfor %}</div>{% endif %}
-        <div>{{snip(*TF("PAGE"))}}</div>
-        <div>{{snip(*TF("TYPE_INS"))}} {{snip(*TF("TECHNIQUE"))}}</div>
+        
+        <div>{{snip(*TF("TYPE_INS"))}} {{snip(*TF("TECHNIQUE"))}} {{snip(*TF("PAGE"))}}</div>
         <div>{{snip(*TF("WIDTH"))}} {{snip(*TF("HEIGHT"))}}</div>
         {% if obj["URL_WEBPAGE"] %}
         <div style="text-align: right">
@@ -72,7 +71,7 @@ async function doInits() {
         maxZoomPixelRatio: 999,
         tileSources: [
             { x: 0, y: 0, width: 1000,             
-              tileSource: 'https://iiif.arkyves.org/{{obj.get('URL_IMAGE')[0]}}/info.json'}],
+              tileSource: '/iiif/2/{{obj.get('URL_IMAGE')[0]}}/info.json'}],
     });
 }
 

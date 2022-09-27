@@ -1,4 +1,6 @@
-from fastapi.responses import HTMLResponse, JSONResponse, RedirectResponse
+from fastapi.responses import HTMLResponse, JSONResponse, RedirectResponse, Response
+from fastapi.exception_handlers import http_exception_handler
+from starlette.exceptions import HTTPException as StarletteHTTPException
 from fastapi import Depends, FastAPI, Request, HTTPException, File, UploadFile
 from .config import ORIGINS, DATABASE_URL, HELP_PATH, UPLOADS_PATH
 from fastapi.middleware.cors import CORSMiddleware
@@ -6,7 +8,7 @@ from fastapi.templating import Jinja2Templates
 from fastapi.staticfiles import StaticFiles
 from jinja2 import Markup
 from hashlib import md5
-import databases, os, json, random
+import databases, os, json, random, time
 from urllib.parse import quote_plus
 import markdown, httpx
 from .util import TF, load, strip_cerlid, get, cerl_thesaurus, cerl_holdinst
@@ -27,6 +29,14 @@ app.add_middleware(
 )
 
 from .am import *
+from .fake_iiif import *
+
+
+@app.exception_handler(StarletteHTTPException)
+async def custom_http_exception_handler(request, exc):
+    if exc.status_code == 401:
+        return RedirectResponse("/login")
+    return await http_exception_handler(request, exc)
 
 
 @app.get("/", response_class=HTMLResponse, include_in_schema=False)
@@ -71,20 +81,29 @@ async def canyouhelp(request: Request):
     return response
 
 
-@app.get("/edit/{anid:str}", include_in_schema=False)
+@app.get(
+    "/edit/{anid:str}",
+    include_in_schema=False,
+    dependencies=[Depends(authenticated_user)],
+)
 async def edit_item(request: Request, anid: str):
+    if anid == "new":
+        anid = "_"
+        obj = {}
+    else:
+        obj = await get(anid)
+
     response = templates.TemplateResponse(
         "edit_item.html",
-        {
-            "request": request,
-            "anid": anid,
-        },
+        {"request": request, "anid": anid, "obj": obj},
     )
     return response
 
 
 @app.get("/id/{anid:str}.json", include_in_schema=False)
 async def item_json(request: Request, anid: str):
+    if anid == "_":
+        return {}
     obj = await get(anid)
     return obj
 
@@ -132,9 +151,11 @@ async def fragments_modal_search(
     if tipe == "institution":
         url = f"https://data.cerl.org/holdinst/_search?size=100&query={quote_plus(q)}&format=json"
     elif tipe == "person":
+        target = "#owners"
         field = "OWNERS_CERLID"
         url = f"https://data.cerl.org/thesaurus/_search?size=100&query=name%3A${quote_plus(q)}+AND+type%3A%28cnc+OR+cnp%29&format=json"
     elif tipe == "place":
+        target = "#places"
         field = "LOCATION_ORIG_CERLID"
         url = f"https://data.cerl.org/thesaurus/_search?size=100&query=name%3A{quote_plus(q)}%20AND%20type:cnl&format=json"
 
@@ -228,18 +249,49 @@ async def favicon():
 
 
 @app.post("/api/upload", include_in_schema=True)
-async def post_upload(
-    file: UploadFile = File(...), token: str = Depends(oauth2_scheme)
-):
+async def post_upload(file: UploadFile = File(...), user=Depends(authenticated_user)):
     if UPLOADS_PATH:
+        file_name = file.filename
+        if file_name.lower().split(".")[-1] not in (
+            "jpeg",
+            "jpg",
+            "png",
+            "tif",
+            "tiff",
+            "heic",
+        ):
+            raise HTTPException(
+                status_code=500,
+                detail=f"Only image files are allowed, looks like this filename: {file_name} is not one of them",
+            )
         contents = await file.read()
         hash_filename = md5(contents).hexdigest()
+        timestamp = str(time.time())
         open(os.path.join(UPLOADS_PATH, hash_filename), "wb").write(contents)
-        return {
+        meta = {
+            "username": user.username,
             "file_size": len(contents),
-            "file_name": file.filename,
+            "file_name": file_name,
             "hash_filename": hash_filename,
+            "timestamp": timestamp,
         }
+        open(os.path.join(UPLOADS_PATH, f"{hash_filename}.{timestamp}"), "w").write(
+            json.dumps(meta)
+        )
+        return meta
     raise HTTPException(
         status_code=500, detail="An UPLOADS_PATH has not been configured on the server"
     )
+
+
+@app.get("/api/download/dmp")
+async def download_dmp():
+    data = await database.fetch_all("SELECT obj FROM source")
+    buf = []
+    for x in data:
+        for k, v in json.loads(x[0]).items():
+            tmp = "\n; ".join(["\n ".join(str(vv).split("\n")) for vv in v])
+            buf.append(f"{k} {tmp}")
+        buf.append("$")
+    r = Response("\n".join(buf), media_type="text/plain")
+    return r

@@ -197,7 +197,7 @@ async def filechosen(event):
         )
         response = await result.json()
         if "hash_filename" in response:
-            hash_filename = response["hash_filename"] + ".jpg"
+            hash_filename = response["hash_filename"]
             # Check if this returned hash is in the obj
             URL_IMAGE = document.obj.get("URL_IMAGE", [])
             if hash_filename not in URL_IMAGE:

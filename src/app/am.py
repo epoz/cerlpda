@@ -82,6 +82,8 @@ def get_password_hash(password):
 
 
 def get_user_fromdb(username_in: str):
+    if not username_in:
+        return None
     con = sqlite3.connect(ADMIN_DATABASE).cursor()
     return con.execute(
         "SELECT * FROM users WHERE username = ?", (username_in,)

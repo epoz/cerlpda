@@ -4,7 +4,7 @@
 from fastapi import HTTPException, Request, Response
 from fastapi.responses import JSONResponse
 
-from .config import UPLOADS_PATH, SITE_URI
+from .config import UPLOADS_PATH, SITE_URI, FIIIF_CACHE
 import os
 from .main import app
 import pyvips
@@ -14,9 +14,8 @@ import httpx
 
 async def get_image(filename):
     filepath = os.path.join(UPLOADS_PATH, filename)
-    filepath = filepath.replace(".jpg", "")
     if not os.path.exists(filepath):
-        r = httpx.get(f"https://iiif.arkyves.org/{filename}/full/full/0/default.jpg")
+        r = httpx.get(f"https://pda.cerl.org/iiif/2/{filename}/full/full/0/default.jpg")
         if r.status_code == 200:
             open(filepath, "wb").write(r.content)
         else:
@@ -39,6 +38,11 @@ async def imageapi(
     quality: str,
     format: str,
 ):
+    cache_name = f"{filename}_{region}_{size}_{rotation}_{quality}.{format}"
+    cache_path = os.path.join(FIIIF_CACHE, cache_name)
+    if os.path.exists(cache_path):
+        return Response(open(cache_path, "rb").read(), media_type="image/jpeg")
+
     image = await get_image(filename)
 
     try:
@@ -63,6 +67,8 @@ async def imageapi(
             scale = int(size[4:]) / 100
         o = cropped.resize(scale)
         data = o.write_to_buffer(".jpg[Q=95]")
+        open(cache_path, "wb").write(data)
+
         return Response(data, media_type="image/jpeg")
     except:
         traceback.print_exc()

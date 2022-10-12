@@ -19,10 +19,7 @@
 <div class="container-fluid" style="padding: 0;">
         <div class="row p-4">
             <div class="col">
-                <a class="btn btn-sm btn-info" href="#">Edit</a>        
-                <a class="btn btn-sm btn-danger" href="#">Delete</a>
-                <a class="btn btn-sm btn-success" href="#">Request Help</a>
-                <a class="btn btn-sm btn-secondary" href="#">Comment</a>
+                <a class="btn btn-sm btn-info" href="/edit/{{obj['ID'][0]}}">Edit</a>        
                 <a class="btn btn-sm btn-secondary" href="/id/{{obj['ID'][0]}}">View</a>
             </div>
             {% if "OWNER" in obj %}

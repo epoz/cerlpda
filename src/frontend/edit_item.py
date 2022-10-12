@@ -3,6 +3,39 @@ imprint = document.getElementById("imprint")
 author = document.getElementById("author")
 shelfmark = document.getElementById("shelfmark")
 
+REQUIRED_FIELDS = ["CAPTION", "INSTIT_CERLID", "SHELFMARK", "TYPE_INS", "IC"]
+
+FIELDS_MAP = {
+    "URL_WEBPAGE": "#source_url",
+    "CAPTION": "#caption",
+    "TITLE": "#title",
+    "PERSON_AUTHOR": "#author",
+    "IMPRINT": "#imprint",
+    "TEXT": "#transcription",
+    "SHELFMARK": "#shelfmark",
+    "DATE_ORIG": "#date",
+    "WIDTH": "#width",
+    "HEIGHT": "#height",
+    "IC": "#iconclass",
+    "INSTIT_CERLID": "#institution",
+    "TYPE_INS": "#kindofprovenance",
+    "PAGE": "#location_source",
+    "LANG": "#language",
+    "TECHNIQUE": "#technique",
+    "OWNERS_CERLID": "#owners",
+    "LOCATION_ORIG_CERLID": "#places",
+}
+
+
+def required_fields_filled():
+    for field in REQUIRED_FIELDS:
+        if field not in document.obj:
+            return FIELDS_MAP[field]
+        filled = filter(None, [len(val.strip(" ")) > 0 for val in document.obj[field]])
+        if len(filled) < 1:
+            return FIELDS_MAP[field]
+    return True
+
 
 def find_attr_parents(element, attr):
     val = element.getAttribute(attr)
@@ -185,8 +218,8 @@ async def modal_click_handler(event):
     target = event.target.getAttribute("data-target")
     if field and value:
         # Certain fields are multi
-        if field in ["OWNERS_CERLID", "LOCATION_ORIG_CERLID"]:
-            CURRENT = document.obj[field]
+        if field in ["OWNERS_CERLID", "LOCATION_ORIG_CERLID", "IC"]:
+            CURRENT = document.obj.get(field, [])
             if value not in CURRENT:
                 CURRENT.append(value)
             document.obj[field] = CURRENT
@@ -252,7 +285,7 @@ def set_the(field, dest, is_modal=False, is_multi=False):
         elem.innerHTML = ""
     for val in document.obj[field]:
         showval = val
-        if field.endswith("_CERLID"):
+        if field.endswith("_CERLID") or field == "IC":
             tmp = val.split("|")
             showval = tmp[1]
         elif field == "LANG":
@@ -278,6 +311,57 @@ def set_the(field, dest, is_modal=False, is_multi=False):
             elem.value = showval
 
 
+def from_the(field, src):
+    elem = document.querySelector(src)
+    document.obj[field] = [elem.value]
+
+
+def save_fields():
+    from_the("URL_WEBPAGE", "#source_url")
+    from_the("CAPTION", "#caption")
+    from_the("TITLE", "#title")
+    from_the("PERSON_AUTHOR", "#author")
+    from_the("IMPRINT", "#imprint")
+    from_the("TEXT", "#transcription")
+    from_the("SHELFMARK", "#shelfmark")
+    from_the("DATE_ORIG", "#date")
+    from_the("WIDTH", "#width")
+    from_the("HEIGHT", "#height")
+    canyouhelp = document.querySelector("#canyouhelp")
+    if canyouhelp.checked:
+        document.obj["CANYOUHELP"] = [Date.now()]
+    else:
+        document.obj["CANYOUHELP"] = []
+
+
+async def savebutton_handler(event):
+    event.preventDefault()
+
+    save_fields()
+
+    missing_field = required_fields_filled()
+    if missing_field != True:
+        elem = document.querySelector(missing_field)
+        elem.style.border = "2px solid red"
+        elem.focus()
+        return
+
+    anid = document.obj["ID"][0]
+    h = __new__(Headers)
+    h.append("Content-Type", "application/json")
+    result = await fetch(
+        "/id/" + anid,
+        {
+            "method": "PUT",
+            "credentials": "same-origin",
+            "headers": h,
+            "body": JSON.stringify(document.obj),
+        },
+    )
+    response = await result.json()
+    document.location = "/id/" + anid
+
+
 async def init():
     document.getElementById("source_url").addEventListener("keyup", source_url)
     document.getElementById("filechooser").addEventListener("change", filechosen)
@@ -290,6 +374,8 @@ async def init():
         item.addEventListener("click", modal_click_handler)
     for item in document.querySelectorAll(".dropdown-item"):
         item.addEventListener("click", dropdown_click_handler)
+    for button in document.querySelectorAll(".save_button"):
+        button.addEventListener("click", savebutton_handler)
 
     if document.objId:
         result = await fetch("/id/" + document.objId + ".json")
@@ -304,7 +390,7 @@ async def init():
         set_the("DATE_ORIG", "#date")
         set_the("WIDTH", "#width")
         set_the("HEIGHT", "#height")
-        # set_the("", "#")
+        set_the("IC", "#iconclass", False, True)
         set_the("INSTIT_CERLID", "#institution", True)
         set_the("TYPE_INS", "#kindofprovenance", True)
         set_the("PAGE", "#location_source", True)

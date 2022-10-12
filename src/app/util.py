@@ -58,7 +58,13 @@ async def get(objid):
     if not row:
         raise HTTPException(status_code=404)
 
-    obj = json.loads(row[0])
+    obj = {}
+    # Remove all fields with empty lists or strings
+    for k, v in json.loads(row[0]).items():
+        tmp = [vv for vv in v if len(str(vv)) > 0]
+        if len(tmp) > 0:
+            obj[k] = tmp
+
     return obj
 
 

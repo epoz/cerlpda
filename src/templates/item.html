@@ -30,8 +30,11 @@
                 <a class="btn btn-sm btn-secondary" href="#">Comment</a>
                 <a class="btn btn-sm btn-secondary" href="/id/{{obj['ID'][0]}}.raw">Raw</a>
             </div>
-            {% if "OWNER" in obj %}
-            <div class="col"><span class="hed">Uploaded by:</span>{{obj["OWNER"][1]}}</div>            {% endif %}
+            {% if "UPLOADER" in obj %}
+            <div class="col"><span class="hed">Uploaded by:</span>{{obj["UPLOADER"][0][1]}}</div>{% endif %}
+            {% if "CANYOUHELP" in obj %}
+            <div class="col"><a class="btn btn-sm btn-danger" href="/canyouhelp">This item is in "Can You Help?"</a></div>
+            {% endif %}
 
         </div>
 
@@ -69,9 +72,10 @@ async function doInits() {
         showFullPageControl: true,
         showRotationControl: true,
         maxZoomPixelRatio: 999,
-        tileSources: [
-            { x: 0, y: 0, width: 1000,             
-              tileSource: '/iiif/2/{{obj.get('URL_IMAGE')[0]}}/info.json'}],
+        tileSources: [ {% for animage in obj.get('URL_IMAGE', []) %}
+        { x: {{loop.index*1000+100}}, y: 0, width: 1000,             
+            tileSource: '/iiif/2/{{animage}}/info.json'} {% if not loop.last %},{% endif %}
+        {% endfor %}],
     });
 }
 

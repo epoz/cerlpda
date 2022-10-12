@@ -11,6 +11,8 @@ from hashlib import md5
 import databases, os, json, random, time
 from urllib.parse import quote_plus
 import markdown, httpx
+from pydantic import BaseModel
+from typing import List, Optional
 from .util import TF, load, strip_cerlid, get, cerl_thesaurus, cerl_holdinst
 
 database = databases.Database(DATABASE_URL)
@@ -30,6 +32,40 @@ app.add_middleware(
 
 from .am import *
 from .fake_iiif import *
+
+
+class Obj(BaseModel):
+    ID: List[str]
+    TYPE_INS: Optional[List[str]]
+    INSTIT: Optional[List[str]]
+    URL_IMAGE: Optional[List[str]]
+    COMMENT: Optional[List[str]]
+    TITLE: Optional[List[str]]
+    TEXT: Optional[List[str]]
+    IC: Optional[List[str]]
+    WIDTH: Optional[List[str]]
+    LANG: Optional[List[str]]
+    DATE_ORIG_CENTURY: Optional[List[str]]
+    TECHNIQUE: Optional[List[str]]
+    DATE_ORIG: Optional[List[str]]
+    LOCATION_ORIG: Optional[List[str]]
+    HEIGHT: Optional[List[str]]
+    URL_WEBPAGE: Optional[List[str]]
+    PAGE: Optional[List[str]]
+    OWNERS_CERLID: Optional[List[str]]
+    LOCATION_ORIG_CERLID: Optional[List[str]]
+    INSTIT_CERLID: Optional[List[str]]
+    IMPRINT: Optional[List[str]]
+    PERSON_AUTHOR: Optional[List[str]]
+    SHELFMARK: Optional[List[str]]
+    USAGE: Optional[List[str]]
+    CAPTION: Optional[List[str]]
+    LOCATION_INV: Optional[List[str]]
+    IMPRESSUM: Optional[List[str]]
+    PERSON_CONTRIBUTOR: Optional[List[str]]
+    URL_SEEALSO: Optional[List[str]]
+    UPLOADER: Optional[List[str]]
+    CANYOUHELP: Optional[List[str]]
 
 
 @app.exception_handler(StarletteHTTPException)
@@ -68,17 +104,6 @@ async def help(request: Request, page: str):
     return templates.TemplateResponse(
         "help.html", {"request": request, "content": Markup(html)}
     )
-
-
-@app.get("/canyouhelp", response_class=HTMLResponse, include_in_schema=False)
-async def canyouhelp(request: Request):
-    response = templates.TemplateResponse(
-        "canyouhelp.html",
-        {
-            "request": request,
-        },
-    )
-    return response
 
 
 @app.get(
@@ -120,14 +145,28 @@ async def item_id(request: Request, anid: str):
     return render_obj_with(request, obj, "item.html")
 
 
+@app.put("/id/{anid:str}")
+async def api_save(anid: str, obj: Obj, user=Depends(authenticated_user)):
+    new_obj = {}
+    for k, v in obj.dict().items():
+        if v:
+            new_obj[k] = v
+    r = await database.execute(
+        "INSERT INTO history SELECT :user, CURRENT_TIMESTAMP, id, obj FROM source WHERE id = :id",
+        values={"user": user.username, "id": anid},
+    )
+    r = await database.execute(
+        "UPDATE source SET obj = :obj WHERE id = :id",
+        values={"obj": json.dumps(new_obj), "id": anid},
+    )
+    return {"msg": "OK"}
+
+
 def render_obj_with(request: Request, obj, template_name):
     # Try to find the owner from the admin table
-    user = obj.get("OWNER")
-    if user and len(user) > 0:
-        user = get_user_fromdb(user[0])
-        obj["OWNER"] = user
-    elif "OWNER" in obj:
-        del obj["OWNER"]
+    tmp = list(filter(None, [get_user_fromdb(u) for u in obj.get("UPLOADER", [])]))
+    if len(tmp) > 0:
+        obj["UPLOADER"] = tmp
 
     templates.env.filters["cerl_thesaurus"] = cerl_thesaurus
     templates.env.filters["cerl_holdinst"] = cerl_holdinst
@@ -138,6 +177,36 @@ def render_obj_with(request: Request, obj, template_name):
     return response
 
 
+async def fragments_modal_iconclass(request: Request, q: str, size: int = 20):
+    r = httpx.get("https://iconclass.org/api/search?q=" + quote_plus(q))
+    if r.status_code == 200:
+        result = r.json()
+        ic_list = result.get("result", [])
+        if len(ic_list) > 0:
+            params = "&".join([f"notation={quote_plus(x)}" for x in ic_list])
+            r = httpx.get(
+                "https://iconclass.org/json?" + params,
+                headers=httpx.Headers({"Content-Type": "application/json"}),
+            )
+            if r.status_code == 200:
+                result = r.json()
+                rows = []
+                for ic in result.get("result", []):
+                    notation = ic["n"]
+                    txt = notation + " " + ic.get("txt", {}).get("en", "")
+                    rows.append({"id": notation, "name": txt})
+
+                return templates.TemplateResponse(
+                    "fragments_modal_search.html",
+                    {
+                        "request": request,
+                        "field": "IC",
+                        "target": "#iconclass",
+                        "data": rows,
+                    },
+                )
+
+
 @app.get(
     "/fragments/modal_search",
     response_class=HTMLResponse,
@@ -146,6 +215,9 @@ def render_obj_with(request: Request, obj, template_name):
 async def fragments_modal_search(
     request: Request, q: str = "", tipe: str = "institution", size: int = 20
 ):
+    if tipe == "iconclass":
+        return await fragments_modal_iconclass(request, q, size)
+
     field = "INSTIT_CERLID"
     target = "#institution"
     if tipe == "institution":
@@ -197,10 +269,20 @@ async def fragments_modal_search(
 
 
 @app.get("/fragments/search", response_class=HTMLResponse, include_in_schema=False)
-async def fragments_search(request: Request, q: str = "", size: int = 20):
+async def fragments_search(
+    request: Request, q: str = "", size: int = 50, tipe: str = "thumbs"
+):
     batch = await api_search(q, size)
+    batch["results"] = [(TF(b), b) for b in batch["results"]]
+
+    if tipe == "thumbs":
+        template_name = "fragments_search.html"
+    else:
+        template_name = "fragments_search_list.html"
+
+    templates.env.filters["strip_cerlid"] = strip_cerlid
     response = templates.TemplateResponse(
-        "fragments_search.html",
+        template_name,
         {
             "request": request,
             "data": batch,
@@ -210,37 +292,70 @@ async def fragments_search(request: Request, q: str = "", size: int = 20):
 
 
 @app.get("/search")
-async def search(request: Request, q: str = "", size: int = 20):
-    batch = await api_search(q, size)
+async def search(request: Request, q: str = "", size: int = 20, page: int = 0):
+    batch = await api_search(q, size, page)
+
+    pages = round(batch["total"] / size)
+    if pages > 10:
+        pages = 10
+
     response = templates.TemplateResponse(
         "search.html",
-        {"request": request, "data": batch, "q": q},
+        {
+            "request": request,
+            "data": batch,
+            "size": size,
+            "page": page,
+            "pages": pages,
+            "q": q,
+        },
+    )
+    return response
+
+
+@app.get("/canyouhelp", response_class=HTMLResponse, include_in_schema=False)
+async def canyouhelp(request: Request, page: int = 0, size: int = 100):
+
+    search_results = await database.fetch_all(
+        "SELECT id FROM source WHERE length(canyouhelp) > 0 ORDER BY id"
+    )
+    batch = await fetch(search_results, size, page=page)
+
+    pages = round(batch["total"] / size)
+
+    response = templates.TemplateResponse(
+        "search.html",
+        {"request": request, "data": batch, "size": size, "page": page, "pages": pages},
     )
     return response
 
 
 @app.get("/api/search")
-async def api_search(q: str, size: int = 20):
-    total = 0
+async def api_search(q: str, size: int = 20, page: int = 0):
     if not q:
         search_results = await database.fetch_all(
             "SELECT id FROM source WHERE id NOT IN (SELECT id FROM idx WHERE text MATCH 'Unidentified')"
         )
-        total = len(search_results)
     else:
         query = "SELECT id FROM idx WHERE text MATCH :q ORDER BY rank"
         search_results = await database.fetch_all(query, values={"q": q})
-        total = len(search_results)
+    return await fetch(search_results, size, page, q == "")
+
+
+async def fetch(search_results, size, page=0, shuffle=False):
+    total = len(search_results)
     search_results = [f"'{row[0]}'" for row in search_results]
 
     batch = await database.fetch_all(
         "SELECT obj FROM source WHERE id in (%s)" % ", ".join(search_results)
     )
     batch = [load(x[0]) for x in batch]
-    if not q:
+    if shuffle:
         random.shuffle(batch)
 
-    return {"total": total, "results": batch[:size]}
+    start = page * size
+
+    return {"total": total, "results": batch[start : start + size]}
 
 
 @app.get("/favicon.ico", include_in_schema=False)
@@ -255,17 +370,13 @@ async def post_upload(file: UploadFile = File(...), user=Depends(authenticated_u
         if file_name.lower().split(".")[-1] not in (
             "jpeg",
             "jpg",
-            "png",
-            "tif",
-            "tiff",
-            "heic",
         ):
             raise HTTPException(
                 status_code=500,
-                detail=f"Only image files are allowed, looks like this filename: {file_name} is not one of them",
+                detail=f"Only jpg image files are allowed, looks like this filename: {file_name} is not one of them",
             )
         contents = await file.read()
-        hash_filename = md5(contents).hexdigest()
+        hash_filename = md5(contents).hexdigest() + ".jpg"
         timestamp = str(time.time())
         open(os.path.join(UPLOADS_PATH, hash_filename), "wb").write(contents)
         meta = {

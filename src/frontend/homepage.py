@@ -1,3 +1,5 @@
+from shared import *
+
 searchbox = document.getElementById("searchbox")
 searchresults = document.getElementById("searchresults")
 showrandom = document.getElementById("showrandom")
@@ -24,9 +26,18 @@ async def searchbox_keyup(event):
     document.searchbounce = setTimeout(do_search, 500)
 
 
+async def result_handler(event):
+    anid = find_attr_parents(event.target, "anid")
+    if anid:
+        event.preventDefault()
+        document.location = "/id/" + anid
+
+
 async def init():
     searchbox.addEventListener("keyup", searchbox_keyup)
-    showrandom.addEventListener("click", searchbox_keyup)
+    if showrandom:
+        showrandom.addEventListener("click", searchbox_keyup)
+    searchresults.addEventListener("click", result_handler)
     searchbox.focus()
 
 

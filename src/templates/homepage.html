@@ -16,25 +16,24 @@
 <script type="module">import * as homepage from '/static/homepage/homepage.js';</script>
 {% endblock %}
 
-{% block notification %}
-<div class="container-fluid" style="animation: fadeOut 30s; background-color: #000; color: #ae2323; padding: 0.5vw; text-align: right">
-<span style="font-size: 150%">☞&nbsp;&nbsp;</span> This is a test system under development, and <strong>not</strong> the live database!    
-</div>
-{% endblock notification %}
- 
+
 {% block content %}
 <div class="container-fluid" style="padding: 0;">
 
-<div class="wideslab" style="text-align: center; padding-top: 8vw">
-<h2>❧ Welcome to the CERL Provenance Digital Archive</h2>
-<div>
-<input type="search" id="searchbox" style="width: 80%" placeholder="Type here to start searching..." value="{{q}}"/>
-<a href="/help/searchtips" style="font-size: 75%; font-family: Satyr Smallcaps; color: #888;">Search tips</a>
-</div>
+    <div class="row">
+        <div class="col" style="text-align: center; padding-top: 8vw">
+            <h2>❧ Welcome to the CERL Provenance Digital Archive</h2>
+            <div>
+                <input type="search" id="searchbox" style="width: 80%" placeholder="Type here to start searching..." value="{{q}}"/>
+                <a href="/help/searchtips" style="font-size: 75%; font-family: Satyr Smallcaps; color: #888;">Search tips</a>
+            </div>
+        </div>
+    </div> 
+
 </div>
 
 {% block searchresults %}
-<div id="searchresults">
+<div id="searchresults" style="padding: 1vh 1vw 5vh 5vw; margin-top: 2vh">
     <div class="row justify-content-center" style="height: 30vh">
         <div class="col-4 text-center">There are currently {{total}} items in the database.</div>
         <div class="col-4 text-center"><a href="#" id="showrandom">Click here to see a random selection</a>, or type a search query.</div>

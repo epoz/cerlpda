@@ -23,6 +23,8 @@ RUN transcrypt -bm homepage.py && mv __target__ homepage
 
 FROM python:3.9.7
 
+RUN apt update && apt install -y libvips
+
 COPY --from=stylebuild /home/static /home/src/static
 
 RUN pip install --upgrade pip
@@ -35,4 +37,4 @@ COPY --from=transcrypt /home/homepage /home/src/static/homepage
 
 WORKDIR /home/src
 
-CMD ["uvicorn", "--port", "8000", "--host", "0.0.0.0", "app:app"]
+CMD ["uvicorn", "--port", "50011", "--host", "0.0.0.0", "app:app"]

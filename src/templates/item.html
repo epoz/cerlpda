@@ -28,7 +28,6 @@
                 <a class="btn btn-sm btn-info" href="/edit/{{obj['ID'][0]}}">Edit</a>        
                 <a class="btn btn-sm btn-danger" href="#">Delete</a>
                 <a class="btn btn-sm btn-secondary" href="#">Comment</a>
-                <a class="btn btn-sm btn-secondary" href="/id/{{obj['ID'][0]}}.raw">Raw</a>
             </div>
             {% if "UPLOADER" in obj %}
             <div class="col"><span class="hed">Uploaded by:</span>{{obj["UPLOADER"][0][1]}}</div>{% endif %}

@@ -16,10 +16,13 @@ RUN apt update && apt install -y openjdk-11-jre-headless
 WORKDIR /home
 
 COPY src/frontend/homepage.py .
+COPY src/frontend/edit_item.py .
+COPY src/frontend/shared.py .
 
 RUN pip install Transcrypt==3.9.0 htmltree==0.7.6
 
 RUN transcrypt -bm homepage.py && mv __target__ homepage
+RUN transcrypt -bm edit_item.py && mv __target__ edit_item
 
 FROM python:3.9.7
 
@@ -34,6 +37,7 @@ RUN pip install -r requirements.txt
 COPY src /home/src
 
 COPY --from=transcrypt /home/homepage /home/src/static/homepage
+COPY --from=transcrypt /home/edit_item /home/src/static/edit_item
 
 WORKDIR /home/src
 

@@ -338,7 +338,10 @@ async def api_search(q: str, size: int = 20, page: int = 0):
         )
     else:
         query = "SELECT id FROM idx WHERE text MATCH :q ORDER BY rank"
-        search_results = await database.fetch_all(query, values={"q": q})
+        try:
+            search_results = await database.fetch_all(query, values={"q": q})
+        except sqlite3.OperationalError:
+            return {"total": 0, "results": []}
     return await fetch(search_results, size, page, q == "")
 
 

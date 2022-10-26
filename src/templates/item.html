@@ -17,6 +17,7 @@
 <!--script type="module">import * as item from '/static/item/item.js';</script-->
 <style>
 .hed {font-variant: small-caps; color: #888; margin-right: 1ch}
+.notespara {margin: 0}
 </style>
 
 {% endblock %}
@@ -25,18 +26,21 @@
 <div class="container-fluid" style="padding: 1vh 1vw 5vh 5vw;">
         <div class="row p-4">
             <div class="col">
-                <a class="btn btn-sm btn-info" href="/edit/{{obj['ID'][0]}}">Edit</a>        
-                <a class="btn btn-sm btn-danger" href="#">Delete</a>
+                {% if request.user.is_admin or obj["UPLOADER"][0][0] == request.user.username %}
+                <a class="btn btn-sm btn-info" href="/edit/{{obj['ID'][0]}}">Edit</a>{% endif %}
+                {% if request.user.is_admin %}
+                <a class="btn btn-sm btn-danger" href="#">Delete</a>{% endif %}                        
                 <a class="btn btn-sm btn-secondary" href="#">Comment</a>
             </div>
-            {% if "UPLOADER" in obj %}
+            {% if "UPLOADER" in obj and request.user.is_admin %}
             <div class="col"><span class="hed">Uploaded by:</span>{{obj["UPLOADER"][0][1]}}</div>{% endif %}
             {% if "CANYOUHELP" in obj %}
             <div class="col"><a class="btn btn-sm btn-danger" href="/canyouhelp">This item is in "Can You Help?"</a></div>
             {% endif %}
-
+            {% if request.user.is_admin %}
+            <div class="col"><a class="btn btn-sm btn-secondary" href="/id/{{obj['ID'][0]}}.raw">Raw</a></div>
+            {% endif %}
         </div>
-
 
     <div class="row" style="padding: 1vw 2vw 0 2vw">
         <div style="font-size: 150%">{{snip(*TF("OWNERS_CERLID"))}}</div>
@@ -51,10 +55,27 @@
         
         <div>{{snip(*TF("TYPE_INS"))}} {{snip(*TF("TECHNIQUE"))}} {{snip(*TF("PAGE"))}}</div>
         <div>{{snip(*TF("WIDTH"))}} {{snip(*TF("HEIGHT"))}}</div>
+
+        {% if obj.get("IC", [])|length > 0 %}
+        <div class="mt-2"><p class="hed" style="margin: 0">ICONCLASS</p>
+         {% for obj in obj.get("IC", [])|ic %}
+            {% if obj %}
+            <p style="margin: 0"><a target="_ic" href="https://iconclass.org/{{obj.get('n')|urlencode}}">{{obj.get('n')}}</a> {{obj['txt']['en']}}</p>
+            {% endif %}
+
+        {% endfor %}</div>
+        {% endif %}
+
+
         {% if obj["URL_WEBPAGE"] %}
         <div style="text-align: right">
         See:  <a href="{{obj["URL_WEBPAGE"][0]}}">{{obj["URL_WEBPAGE"][0]}}</a></div>
         {% endif %}
+        {% if obj["NOTES"] %}
+        <p class="hed" style="margin: 0">Notes:</p>
+        <div style="margin-bottom: 3vh">{{obj["NOTES"][0]|to_paras}}</div>
+        {% endif %}
+
 
         <div id="thedzi1" style="height: 60vh; width: 100%; margin: 0 auto; border-top: 4px solid #ddd;"></div>
 

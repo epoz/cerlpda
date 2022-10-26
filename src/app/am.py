@@ -37,21 +37,21 @@ def init_admin_db():
     con = sqlite3.connect(ADMIN_DATABASE)
     cur = con.cursor()
 
-    cur.execute(
+    cur.executescript(
         """CREATE TABLE IF NOT EXISTS users 
     (username TEXT, 
     name TEXT,
     password TEXT,
-    activation_date TEXT)"""  # We will store these as ISO8601 strings ("YYYY-MM-DD HH:MM:SS.SSS") in GMT
+    activation_date TEXT);
+    
+    CREATE UNIQUE INDEX IF NOT EXISTS users_username ON users (username);
+    CREATE TABLE IF NOT EXISTS email_confirm (username TEXT, nonce TEXT);
+    CREATE INDEX IF NOT EXISTS email_confirm_username on email_confirm (username);
+    CREATE INDEX IF NOT EXISTS email_confirm_nonce on email_confirm (nonce);
+    CREATE TABLE IF NOT EXISTS admin_users(username);
+    """
     )
-    cur.execute("CREATE UNIQUE INDEX IF NOT EXISTS users_username ON users (username)")
-    cur.execute("CREATE TABLE IF NOT EXISTS email_confirm (username TEXT, nonce TEXT)")
-    cur.execute(
-        "CREATE INDEX IF NOT EXISTS email_confirm_username on email_confirm (username)"
-    )
-    cur.execute(
-        "CREATE INDEX IF NOT EXISTS email_confirm_nonce on email_confirm (nonce)"
-    )
+    # We will store activation_date as ISO8601 strings ("YYYY-MM-DD HH:MM:SS.SSS") in GMT
     # The nonce used in the email_confim is a ksuid https://segment.com/blog/a-brief-history-of-the-uuid/
     # so it has a timestamp baked in
 
@@ -62,6 +62,7 @@ init_admin_db()
 class User(BaseModel):
     username: str
     name: Optional[str] = None
+    is_admin: bool = False
 
 
 class Token(BaseModel):
@@ -86,7 +87,8 @@ def get_user_fromdb(username_in: str):
         return None
     con = sqlite3.connect(ADMIN_DATABASE).cursor()
     return con.execute(
-        "SELECT * FROM users WHERE username = ?", (username_in,)
+        "select * from users left join admin_users on users.username = admin_users.username WHERE users.username = ?",
+        (username_in,),
     ).fetchone()
 
 
@@ -94,10 +96,12 @@ def authenticate_user(username_in: str, password_in: str):
     user_record = get_user_fromdb(username_in)
     if not user_record:
         return False
-    username, name, stored_password, activation_date = user_record
-    if not verify_password(password_in, stored_password):
+    username, name, stored_password, activation_date, is_admin = user_record
+    if password_in and not verify_password(password_in, stored_password):
         return False
-    return User(username=username, name=name)
+    if is_admin == username:
+        return User(username=username, name=name, is_admin=True)
+    return User(username=username, name=name, is_admin=False)
 
 
 def create_access_token(data: dict, expires_delta: Optional[timedelta] = None):
@@ -131,11 +135,10 @@ def get_user_from_token(token: str):
     except JWTError:
         raise credentials_exception
 
-    user_record = get_user_fromdb(username)
-    if not user_record:
+    user = authenticate_user(username, None)
+    if not user:
         raise credentials_exception
-    username, name, stored_password, activation_date = user_record
-    return User(username=username, name=name)
+    return user
 
 
 async def authenticated_user(request: Request):
@@ -295,6 +298,7 @@ class CookieTokenAuthBackend(AuthenticationBackend):
                 return
             if user:
                 su = SimpleUser(user.username)
+                su.is_admin = user.is_admin
                 return AuthCredentials(["authenticated"]), su
 
 

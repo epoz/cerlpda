@@ -13,7 +13,16 @@ from urllib.parse import quote_plus
 import markdown, httpx
 from pydantic import BaseModel
 from typing import List, Optional
-from .util import TF, load, strip_cerlid, get, cerl_thesaurus, cerl_holdinst
+from .util import (
+    TF,
+    load,
+    strip_cerlid,
+    get,
+    cerl_thesaurus,
+    cerl_holdinst,
+    to_paras,
+    ic,
+)
 
 database = databases.Database(DATABASE_URL)
 
@@ -66,6 +75,7 @@ class Obj(BaseModel):
     URL_SEEALSO: Optional[List[str]]
     UPLOADER: Optional[List[str]]
     CANYOUHELP: Optional[List[str]]
+    NOTES: Optional[List[str]]
 
 
 @app.exception_handler(StarletteHTTPException)
@@ -170,6 +180,8 @@ def render_obj_with(request: Request, obj, template_name):
 
     templates.env.filters["cerl_thesaurus"] = cerl_thesaurus
     templates.env.filters["cerl_holdinst"] = cerl_holdinst
+    templates.env.filters["to_paras"] = to_paras
+    templates.env.filters["ic"] = ic
     response = templates.TemplateResponse(
         template_name,
         {"request": request, "obj": obj, "TF": TF(obj)},
@@ -409,3 +421,17 @@ async def download_dmp():
         buf.append("$")
     r = Response("\n".join(buf), media_type="text/plain")
     return r
+
+
+@app.get("/list", response_class=HTMLResponse, include_in_schema=False)
+async def listview(request: Request, page: int = 0, size: int = 100):
+
+    batch = await database.fetch_all("SELECT obj FROM source ORDER BY id")
+    batch = [json.loads(x[0]) for x in batch]
+
+    templates.env.filters["strip_cerlid"] = strip_cerlid
+    response = templates.TemplateResponse(
+        "list.html",
+        {"request": request, "data": batch},
+    )
+    return response

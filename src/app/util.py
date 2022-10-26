@@ -1,9 +1,10 @@
 import smtplib, json
 from email.message import EmailMessage
-import databases
+import databases, httpx
 from .config import DATABASE_URL
 from fastapi import HTTPException
 from jinja2 import Markup
+from urllib.parse import quote_plus
 
 database = databases.Database(DATABASE_URL)
 
@@ -80,6 +81,8 @@ def load(obj_string):
 
 # A jinja filter to strip CERLIDs from a field
 def strip_cerlid(value):
+    if type(value) != str:
+        return ""
     tmp = value.split("|")
     if len(tmp) < 2:
         return value
@@ -104,3 +107,17 @@ def cerl_holdinst(value):
 
 def cerl_thesaurus(value):
     return to_link("https://data.cerl.org/thesaurus/", value)
+
+
+def to_paras(value):
+    tmp = [f"<p class='notespara'>{v}</p>" for v in value.split("\n")]
+    return Markup("".join(tmp))
+
+
+def ic(values):
+    params = [f"notation={quote_plus(v.strip(' '))}" for v in values]
+    r = httpx.get("https://iconclass.org/json?" + "&".join(params))
+    if r.status_code == 200:
+        data = r.json()
+        return data.get("result", [])
+    return {}

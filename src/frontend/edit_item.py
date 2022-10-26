@@ -238,7 +238,16 @@ async def dropdown_click_handler(event):
 
     if field and value:
         document.obj[field] = [value]
-        set_the(field, target, True)
+        if field == "PAGE":
+            if value == "Page number":
+                elem = document.querySelector(target)
+                elem.value = ""
+                elem.focus()
+            else:
+                set_the(field, target)
+
+        else:
+            set_the(field, target, True)
         event.preventDefault()
 
 
@@ -285,7 +294,7 @@ def set_the(field, dest, is_modal=False, is_multi=False):
         elem.innerHTML = ""
     for val in document.obj[field]:
         showval = val
-        if field.endswith("_CERLID") or field == "IC":
+        if field.endswith("_CERLID"):
             tmp = val.split("|")
             showval = tmp[1]
         elif field == "LANG":
@@ -327,6 +336,8 @@ def save_fields():
     from_the("DATE_ORIG", "#date")
     from_the("WIDTH", "#width")
     from_the("HEIGHT", "#height")
+    from_the("NOTES", "#notes")
+    from_the("PAGE", "#page")
     canyouhelp = document.querySelector("#canyouhelp")
     if canyouhelp.checked:
         document.obj["CANYOUHELP"] = [Date.now()]
@@ -390,10 +401,11 @@ async def init():
         set_the("DATE_ORIG", "#date")
         set_the("WIDTH", "#width")
         set_the("HEIGHT", "#height")
+        set_the("NOTES", "#notes")
         set_the("IC", "#iconclass", False, True)
         set_the("INSTIT_CERLID", "#institution", True)
         set_the("TYPE_INS", "#kindofprovenance", True)
-        set_the("PAGE", "#location_source", True)
+        set_the("PAGE", "#page")
         set_the("LANG", "#language", True)
         set_the("TECHNIQUE", "#technique", True)
         set_the("OWNERS_CERLID", "#owners", False, True)

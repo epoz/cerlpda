@@ -183,10 +183,10 @@
             </div>
 
             <div class="row">
-                <div class="col-2">
+                <div class="col-auto">
                     <label class="form-label" for="shelfmark">Shelfmark</label>
                 </div>
-                <div class="col-6">
+                <div class="col-auto">
                     <input type="text" id="shelfmark" class="form-control  form-control-sm" placeholder="Enter a shelfmark here if not automatically provided by the source URI"/>
                 </div>
             </div>
@@ -225,14 +225,14 @@
 
             </div>
 
-            <div class="row mb-1">
-              <div class="dropdown col-2">
+            <div class="row mb-1 gx-3 align-items-center">
+              <div class="dropdown col-auto">
                 <a class="btn dropdown-toggle" href="#" role="button" id="location_source_chooser" data-bs-toggle="dropdown" aria-expanded="false">
-                <span style="font-weight: bold">Location in source</span>
-                <span style="margin-left: 1vw" id="location_source"></span> 
+                <span style="font-weight: bold">Location in source</span>                
                 </a>
 
-                <ul class="dropdown-menu" aria-labelledby="location_source_chooser" data-field="PAGE" data-target="#location_source">
+                <ul class="dropdown-menu" aria-labelledby="location_source_chooser" data-field="PAGE" data-target="#page">
+                    <li><a class="dropdown-item" href="#">Title page</a></li>
                     <li><a class="dropdown-item" href="#">Page number</a></li>
                     <li><a class="dropdown-item" href="#">Front cover</a></li>
                     <li><a class="dropdown-item" href="#">Back cover</a></li>
@@ -245,8 +245,10 @@
                     <li><a class="dropdown-item" href="#">Upper edge</a></li>
                     <li><a class="dropdown-item" href="#">Lower edge</a></li>
                     <li><a class="dropdown-item" href="#">Fore-edge</a></li>
-                    <li><a class="dropdown-item" href="#">Title page</a></li>
-                </ul>
+                </ul>                
+              </div>
+              <div class="col-auto">
+                <input type="text" id="page" class="form-control form-control-sm" placeholder="Page number, if exact" />
               </div>              
             </div>
 
@@ -265,7 +267,7 @@
         </div>
 
             <div class="row mb-1">
-              <div class="col-2 dropdown">
+              <div class="col dropdown">
                 <a class="btn dropdown-toggle" href="#" role="button" id="language_chooser" data-bs-toggle="dropdown" aria-expanded="false">
                 <span style="font-weight: bold">Language</span>
                 <span style="margin-left: 1vw" id="language"></span> 
@@ -279,15 +281,18 @@
                     <li><a class="dropdown-item" href="#" data-code="la">Latin</a></li>
                     <li><a class="dropdown-item" href="#" data-code="gr">Greek</a></li>
                     <li><a class="dropdown-item" href="#" data-code="he">Hebrew</a></li>
-                    <li style="text-align: right"><a class="dropdown-item" href="#" data-code="_" style="font-style: italic">Unknown</a></li>
+                    <li><a class="dropdown-item" href="#" data-code="es">Spanish</a></li>
+                    <li><a class="dropdown-item" href="#" data-code="se">Swedish</a></li>
+                    <li style="text-align: right"><a class="dropdown-item" href="#" data-code="_" style="font-style: italic">Not applicable</a></li>
                 </ul>
+                <span style="font-size: 70%; font-style: italic">If a language is not included in this list, please specify it in the general "Notes" field</span>
               </div>
             </div>
 
      
 
             <div class="row mb-1">
-                <div class="col-3">Centuries Used</div>            
+                <div class="col-3">Global date range</div>            
                 <div class="col-9">
                 {% for c in range(14, 21, 1)  %}
                 <div class="form-check form-check-inline">
@@ -386,6 +391,13 @@
             </a>
             <div style="display: inline" id="owners"></div>
         </div>        
+    </div>
+
+    <div class="row mt-2">
+        <div class="col">
+        <h3>Notes</h3>
+        <textarea cols="80" id="notes" rows="10" placeholder="Any general notes that can not be captured in the fields above."></textarea>
+        </div>
     </div>
 
     <div class="row" style="margin-top: 5vh; border-top: 2px solid #ddd; padding-top: 1vh">

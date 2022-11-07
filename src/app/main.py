@@ -138,7 +138,7 @@ async def edit_item(request: Request, anid: str):
 @app.get("/id/{anid:str}.json", include_in_schema=False)
 async def item_json(request: Request, anid: str):
     if anid == "_":
-        return {}
+        return {"ID": ["_"]}
     obj = await get(anid)
     return obj
 
@@ -161,15 +161,24 @@ async def api_save(anid: str, obj: Obj, user=Depends(authenticated_user)):
     for k, v in obj.dict().items():
         if v:
             new_obj[k] = v
-    r = await database.execute(
-        "INSERT INTO history SELECT :user, CURRENT_TIMESTAMP, id, obj FROM source WHERE id = :id",
-        values={"user": user.username, "id": anid},
-    )
-    r = await database.execute(
-        "UPDATE source SET obj = :obj WHERE id = :id",
-        values={"obj": json.dumps(new_obj), "id": anid},
-    )
-    return {"msg": "OK"}
+
+    if anid == "_":
+        tmp = "".join([random.choice("0123456789abcdef") for x in range(5)])
+        new_obj["ID"] = [f"cerlpda_{tmp}"]
+        r = await database.execute(
+            "INSERT INTO source VALUES (:id, :obj)",
+            values={"obj": json.dumps(new_obj), "id": new_obj["ID"][0]},
+        )
+    else:
+        r = await database.execute(
+            "INSERT INTO history SELECT :user, CURRENT_TIMESTAMP, id, obj FROM source WHERE id = :id",
+            values={"user": user.username, "id": anid},
+        )
+        r = await database.execute(
+            "UPDATE source SET obj = :obj WHERE id = :id",
+            values={"obj": json.dumps(new_obj), "id": anid},
+        )
+    return {"ID": new_obj["ID"][0]}
 
 
 def render_obj_with(request: Request, obj, template_name):

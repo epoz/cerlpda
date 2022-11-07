@@ -350,6 +350,11 @@ async def savebutton_handler(event):
 
     save_fields()
 
+    # clear all required fields first
+    for afield in REQUIRED_FIELDS:
+        elem = document.querySelector(FIELDS_MAP[afield])
+        elem.style.border = "none"
+
     missing_field = required_fields_filled()
     if missing_field != True:
         elem = document.querySelector(missing_field)
@@ -370,7 +375,7 @@ async def savebutton_handler(event):
         },
     )
     response = await result.json()
-    document.location = "/id/" + anid
+    document.location = "/id/" + response["ID"]
 
 
 async def init():

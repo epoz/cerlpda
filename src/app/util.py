@@ -5,6 +5,7 @@ from .config import DATABASE_URL
 from fastapi import HTTPException
 from jinja2 import Markup
 from urllib.parse import quote_plus
+from markdown_it import MarkdownIt
 
 database = databases.Database(DATABASE_URL)
 
@@ -66,6 +67,13 @@ async def get(objid):
         if len(tmp) > 0:
             obj[k] = tmp
 
+    # fetch any annotations
+    for user, value, timestamp in await database.fetch_all(
+        "SELECT user, value, timestamp FROM annotation WHERE uid = :uid",
+        values={"uid": objid},
+    ):
+        obj.setdefault("ANNOT", []).append((user, value, timestamp))
+
     return obj
 
 
@@ -121,3 +129,8 @@ def ic(values):
         data = r.json()
         return data.get("result", [])
     return {}
+
+
+def markdown(value):
+    m = MarkdownIt()
+    return Markup(m.render(value))

@@ -10,7 +10,7 @@ from jinja2 import Markup
 from hashlib import md5
 import databases, os, json, random, time
 from urllib.parse import quote_plus
-import markdown, httpx
+import markdown, httpx, openpyxl
 from pydantic import BaseModel
 from typing import List, Optional
 from .util import (
@@ -22,6 +22,7 @@ from .util import (
     cerl_holdinst,
     to_paras,
     ic,
+    markdown,
 )
 
 database = databases.Database(DATABASE_URL)
@@ -76,6 +77,7 @@ class Obj(BaseModel):
     UPLOADER: Optional[List[str]]
     CANYOUHELP: Optional[List[str]]
     NOTES: Optional[List[str]]
+    TIMESTAMP: Optional[List[str]]
 
 
 @app.exception_handler(StarletteHTTPException)
@@ -161,6 +163,7 @@ async def api_save(anid: str, obj: Obj, user=Depends(authenticated_user)):
     for k, v in obj.dict().items():
         if v:
             new_obj[k] = v
+    new_obj.setdefault("TIMESTAMP", []).append(time.ctime())
 
     if anid == "_":
         tmp = "".join([random.choice("0123456789abcdef") for x in range(5)])
@@ -191,6 +194,7 @@ def render_obj_with(request: Request, obj, template_name):
     templates.env.filters["cerl_holdinst"] = cerl_holdinst
     templates.env.filters["to_paras"] = to_paras
     templates.env.filters["ic"] = ic
+    templates.env.filters["markdown"] = markdown
     response = templates.TemplateResponse(
         template_name,
         {"request": request, "obj": obj, "TF": TF(obj)},
@@ -419,6 +423,69 @@ async def post_upload(file: UploadFile = File(...), user=Depends(authenticated_u
     )
 
 
+@app.get("/api/download/excel")
+async def download_excel():
+    data = await database.fetch_all("SELECT obj FROM source")
+    wb = openpyxl.Workbook()
+    sheet = wb.active
+    sheet.title = "Download"
+
+    FIELDS = [
+        "ID",
+        "TYPE_INS",
+        "INSTIT",
+        "URL_IMAGE",
+        "COMMENT",
+        "TITLE",
+        "TEXT",
+        "IC",
+        "WIDTH",
+        "LANG",
+        "DATE_ORIG_CENTURY",
+        "TECHNIQUE",
+        "DATE_ORIG",
+        "LOCATION_ORIG",
+        "HEIGHT",
+        "URL_WEBPAGE",
+        "PAGE",
+        "OWNERS_CERLID",
+        "LOCATION_ORIG_CERLID",
+        "INSTIT_CERLID",
+        "IMPRINT",
+        "PERSON_AUTHOR",
+        "SHELFMARK",
+        "USAGE",
+        "CAPTION",
+        "LOCATION_INV",
+        "IMPRESSUM",
+        "PERSON_CONTRIBUTOR",
+        "URL_SEEALSO",
+        "UPLOADER",
+        "CANYOUHELP",
+        "NOTES",
+    ]
+    for i, f in enumerate(FIELDS):
+        sheet.cell(row=1, column=i + 1).value = f
+    for data_idx, row in enumerate(data):
+        obj = json.loads(row[0])
+        for i, f in enumerate(FIELDS):
+            if f in obj:
+                sheet.cell(row=data_idx + 2, column=i + 1).value = "\n".join(
+                    [str(val) for val in obj.get(f, [])]
+                )
+
+    d = openpyxl.writer.excel.save_virtual_workbook(wb)
+    ymdhhss = time.strftime("%Y-%m-%d_%H:%M")
+    r = Response(
+        d,
+        media_type="application/vnd.ms-excel",
+        headers={
+            "Content-Disposition": f'attachment; filename="cerlpda_{ymdhhss}.xlsx"'
+        },
+    )
+    return r
+
+
 @app.get("/api/download/dmp")
 async def download_dmp():
     data = await database.fetch_all("SELECT obj FROM source")
@@ -444,3 +511,8 @@ async def listview(request: Request, page: int = 0, size: int = 100):
         {"request": request, "data": batch},
     )
     return response
+
+
+@app.get("/r/{u:path}")
+async def redirector(request: Request, u: str):
+    return RedirectResponse(f"https://arkyves.org/r/{u}")

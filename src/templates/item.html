@@ -16,7 +16,7 @@
 <script src="/static/openseadragon-2.4.2/openseadragon.min.js"></script>
 <!--script type="module">import * as item from '/static/item/item.js';</script-->
 <style>
-.hed {font-variant: small-caps; color: #888; margin-right: 1ch}
+.hed {font-variant: small-caps; color: #888; margin-right: 0.5ch}
 .notespara {margin: 0}
 </style>
 
@@ -44,14 +44,17 @@
 
     <div class="row" style="padding: 1vw 2vw 0 2vw">
         <div style="font-size: 150%">{{snip(*TF("OWNERS_CERLID"))}}</div>
-        <div style="margin-bottom: 1vh">{{snip(*TF("TITLE"))}}</div>
-        <div>{{snip(*TF("CAPTION"))}}</div>
-        <div>{{snip(*TF("TEXT"))}}</div>
-        <div>{{snip(*TF("PERSON_AUTHOR"))}} {{snip(*TF("IMPRINT"))}}</div>
+        <div style="margin-bottom: 1vh">{{snip(*TF("CAPTION"))}}</div>
+
+        <div><span class="hed">Source:</span>
+        {{obj.get("TITLE", [""])[0]}}{% if "PERSON_AUTHOR" in obj %}, {% endif %}{{obj.get("PERSON_AUTHOR", [""])[0]}}
+        {% if "IMPRINT" in obj%}, {% endif %}{{obj.get("IMPRINT", [""])[0]}}
+        </div>
+
+        
+        <div>{{snip(*TF("TEXT"))}}</div>        
         <div>{{snip(*TF("INSTIT_CERLID"))}} {{snip(*TF("SHELFMARK"))}}</div>
         <div>{{snip(*TF("LOCATION_ORIG_CERLID"))}}</div>        
-        {% if obj["OWNERS"] %}<div><span class="hed">Former Owners:</span>{% for vv in obj["OWNERS"] %}
-        {{vv}} {% if not loop.last %}, {% endif %}{% endfor %}</div>{% endif %}
         
         <div>{{snip(*TF("TYPE_INS"))}} {{snip(*TF("TECHNIQUE"))}} {{snip(*TF("PAGE"))}}</div>
         <div>{{snip(*TF("WIDTH"))}} {{snip(*TF("HEIGHT"))}}</div>
@@ -79,6 +82,18 @@
 
         <div id="thedzi1" style="height: 60vh; width: 100%; margin: 0 auto; border-top: 4px solid #ddd;"></div>
 
+        {% if "TIMESTAMP" in obj %}
+        <div><span class="hed">Last Edited:</span> {{obj["TIMESTAMP"][-1]}}</div>
+        {% endif %}
+
+        {% if "ANNOT" in obj %}
+        <div>
+            <h4>Comments</h4>
+            {% for user, value, timestamp in obj["ANNOT"] %}
+                <div title="{{user}} {{timestamp}}">{{value|markdown}}</div>
+            {% endfor %}
+        </div>
+        {% endif %}
     </div>
 
 </div>

@@ -17,6 +17,7 @@ WORKDIR /home
 
 COPY src/frontend/homepage.py .
 COPY src/frontend/edit_item.py .
+COPY src/frontend/item.py .
 COPY src/frontend/shared.py .
 
 RUN pip install Transcrypt==3.9.0 htmltree==0.7.6

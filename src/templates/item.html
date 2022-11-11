@@ -14,8 +14,11 @@
 
 {% block head_last%}
 <script src="/static/openseadragon-2.4.2/openseadragon.min.js"></script>
-<!--script type="module">import * as item from '/static/item/item.js';</script-->
+<script>document.objId = '{{obj['ID'][0]}}'</script>
+<script type="module">import * as item from '/static/item/item.js';</script>
+
 <style>
+
 .hed {font-variant: small-caps; color: #888; margin-right: 0.5ch}
 .notespara {margin: 0}
 </style>
@@ -24,8 +27,9 @@
 
 {% block content %}
 <div class="container-fluid" style="padding: 1vh 1vw 5vh 5vw;">
-        <div class="row p-4">
+        <div class="row" style="padding: 0 2vw 0 2vw">
             <div class="col">
+                
                 {% if request.user.is_admin or obj["UPLOADER"][0][0] == request.user.username %}
                 <a class="btn btn-sm btn-info" href="/edit/{{obj['ID'][0]}}">Edit</a>{% endif %}
                 {% if request.user.is_admin %}
@@ -37,9 +41,12 @@
             {% if "CANYOUHELP" in obj %}
             <div class="col"><a class="btn btn-sm btn-danger" href="/canyouhelp">This item is in "Can You Help?"</a></div>
             {% endif %}
-            {% if request.user.is_admin %}
-            <div class="col"><a class="btn btn-sm btn-secondary" href="/id/{{obj['ID'][0]}}.raw">Raw</a></div>
-            {% endif %}
+            <div class="col">
+                {% if request.user.is_admin %}
+                <a class="btn btn-sm btn-secondary" href="/id/{{obj['ID'][0]}}.raw">Raw</a>
+                {% endif %}
+                <a class="btn btn-sm btn-secondary" href="#" id="citable_uri">Copy URI to clipboard</a>
+            </div>
         </div>
 
     <div class="row" style="padding: 1vw 2vw 0 2vw">
@@ -47,7 +54,7 @@
         <div style="margin-bottom: 1vh">{{snip(*TF("CAPTION"))}}</div>
 
         <div><span class="hed">Source:</span>
-        {{obj.get("TITLE", [""])[0]}}{% if "PERSON_AUTHOR" in obj %}, {% endif %}{{obj.get("PERSON_AUTHOR", [""])[0]}}
+        {{obj.get("PERSON_AUTHOR", [""])[0]}}{% if "TITLE" in obj %}, {% endif %}{{obj.get("TITLE", [""])[0]}}
         {% if "IMPRINT" in obj%}, {% endif %}{{obj.get("IMPRINT", [""])[0]}}
         </div>
 
@@ -115,5 +122,6 @@ async function doInits() {
 }
 
 doInits()
+
 </script>
 {% endblock %}

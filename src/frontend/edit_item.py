@@ -54,8 +54,6 @@ async def source_url(event):
 
 
 async def do_source_url():
-    source_url_spinner = document.getElementById("source_url_spinner")
-    source_url_spinner.style.display = "block"
 
     value = document.getElementById("source_url").value
     # An example HPB URL looks like: http://hpb.cerl.org/record/DE-604.VK.BV012108280
@@ -66,7 +64,6 @@ async def do_source_url():
                 "https://data.cerl.org/_external/hpb_search?query=pica.cid=" + tmp[1]
             )
             response = await result.json()
-            source_url_spinner.style.display = "none"
             if response.hits > 0:
                 data = response.rows[0]
                 if data.title:
@@ -83,7 +80,6 @@ async def do_source_url():
         url = value.replace("http://", "https://")
         result = await fetch(url)
         response = await result.json()
-        source_url_spinner.style.display = "none"
         if response.data:
             data = response.data
             if data.shelfmark:
@@ -103,7 +99,6 @@ async def do_ISTC(url):
     url = url.replace("http://", "https://")
     result = await fetch(url)
     response = await result.json()
-    source_url_spinner.style.display = "none"
     if response.data:
         data = response.data
         if data.title:

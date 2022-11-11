@@ -322,6 +322,7 @@ def from_the(field, src):
 
 def save_fields():
     from_the("URL_WEBPAGE", "#source_url")
+    from_the("COMMENT", "#notes")
     from_the("CAPTION", "#caption")
     from_the("TITLE", "#title")
     from_the("PERSON_AUTHOR", "#author")
@@ -331,7 +332,6 @@ def save_fields():
     from_the("DATE_ORIG", "#date")
     from_the("WIDTH", "#width")
     from_the("HEIGHT", "#height")
-    from_the("NOTES", "#notes")
     from_the("PAGE", "#page")
     canyouhelp = document.querySelector("#canyouhelp")
     if canyouhelp.checked:
@@ -392,6 +392,7 @@ async def init():
         result = await fetch("/id/" + document.objId + ".json")
         document.obj = await result.json()
         set_the("URL_WEBPAGE", "#source_url")
+        set_the("COMMENT", "#notes")
         set_the("CAPTION", "#caption")
         set_the("TITLE", "#title")
         set_the("PERSON_AUTHOR", "#author")

@@ -297,18 +297,6 @@
      
 
             <div class="row mb-1">
-                <div class="col-3">Global date range</div>            
-                <div class="col-9">
-                {% for c in range(14, 21, 1)  %}
-                <div class="form-check form-check-inline">
-                <input {% if c|string in obj['DATE_ORIG_CENTURY'] %}checked="1"{% endif %} data-dest="DATE_ORIG_CENTURY" class="form-check-input century_choice" type="checkbox" id="century_{{c}}" data-value="{{c}}">
-                <label class="form-check-label" for="century_{{c}}">{{c}}th</label>
-                </div>
-                {% endfor %}
-                </div>
-            </div>
-
-            <div class="row mb-1">
               <div class="col-2 dropdown">
                 <a class="btn dropdown-toggle" href="#" role="button" id="technique_chooser" data-bs-toggle="dropdown" aria-expanded="false" style="--bs-btn-bg: #fff; --bs-btn-border-color: #aaa">
                 <span style="font-weight: bold">Technique</span>
@@ -349,7 +337,21 @@
                 <input size="20" type="text" id="date" class="form-control form-control-sm" placeholder="(as exact as possible)"/>
             </div>
         </div>
-        
+
+        <div class="row mb-1">
+            <div class="col-3">Global date range</div>            
+            <div class="col-9">
+            {% for c in range(14, 21, 1)  %}
+            <div class="form-check form-check-inline">
+            <input {% if c|string in obj['DATE_ORIG_CENTURY'] %}checked="1"{% endif %} data-dest="DATE_ORIG_CENTURY" class="form-check-input century_choice" type="checkbox" id="century_{{c}}" data-value="{{c}}">
+            <label class="form-check-label" for="century_{{c}}">{{c}}th</label>
+            </div>
+            {% endfor %}
+            </div>
+        </div>
+
+
+
 
         <div class="row">
             <div class="col-5">

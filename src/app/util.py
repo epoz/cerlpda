@@ -36,6 +36,7 @@ field_titles = {
     "WIDTH": "Width",
     "HEIGHT": "Height",
     "TITLE": "Title",
+    "COMMENT": "Notes",
 }
 
 

@@ -76,7 +76,6 @@ class Obj(BaseModel):
     URL_SEEALSO: Optional[List[str]]
     UPLOADER: Optional[List[str]]
     CANYOUHELP: Optional[List[str]]
-    NOTES: Optional[List[str]]
     TIMESTAMP: Optional[List[str]]
 
 

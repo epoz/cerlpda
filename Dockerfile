@@ -23,6 +23,8 @@ RUN pip install Transcrypt==3.9.0 htmltree==0.7.6
 
 RUN transcrypt -bm homepage.py && mv __target__ homepage
 RUN transcrypt -bm edit_item.py && mv __target__ edit_item
+RUN transcrypt -bm item.py && mv __target__ item
+
 
 FROM python:3.9.7
 

@@ -51,8 +51,8 @@
 
     <div class="row" style="padding: 1vw 2vw 0 2vw">
         <div style="font-size: 150%">{{snip(*TF("OWNERS_CERLID"))}}</div>
-        <div style="margin-bottom: 1vh">{{snip(*TF("CAPTION"))}}</div>
-        <div style="margin-bottom: 1vh">{{snip(*TF("COMMENT"))}}</div>
+        <div>{{snip(*TF("CAPTION"))}}</div>
+        <div>{{snip(*TF("TEXT"))}}</div>                        
 
 
         <div><span class="hed">Source:</span>
@@ -61,14 +61,20 @@
         </div>
 
         
-        <div>{{snip(*TF("TEXT"))}}</div>        
+        
         <div>{{snip(*TF("INSTIT_CERLID"))}} {{snip(*TF("SHELFMARK"))}}</div>
-        <div>{{snip(*TF("LOCATION_ORIG_CERLID"))}}</div>
-
-        <div>{{snip(*TF("DATE"))}}</div>
+        <div>{{snip(*TF("LOCATION_ORIG_CERLID"))}}
+        {% if "DATE_ORIG_CENTURY" in obj%} <span class="hed">Century:</span> {% for c in obj.get('DATE_ORIG_CENTURY', []) %}
+        {{c}}th {% if not loop.last %}, {% endif %}
+        {% endfor %}
+        {% endif %}
+        {{snip(*TF("DATE_ORIG"))}}</div>
         
         <div>{{snip(*TF("TYPE_INS"))}} {{snip(*TF("TECHNIQUE"))}} {{snip(*TF("PAGE"))}}</div>
         <div>{{snip(*TF("WIDTH"))}} {{snip(*TF("HEIGHT"))}}</div>
+
+        <div>{{snip(*TF("COMMENT"))}}</div>
+
 
         {% if obj.get("IC", [])|length > 0 %}
         <div class="mt-2"><p class="hed" style="margin: 0">ICONCLASS</p>

@@ -1,3 +1,5 @@
+from shared import *
+
 title = document.getElementById("title")
 imprint = document.getElementById("imprint")
 author = document.getElementById("author")
@@ -42,15 +44,6 @@ def required_fields_filled():
         if len(filled) < 1:
             return FIELDS_MAP[field]
     return True
-
-
-def find_attr_parents(element, attr):
-    val = element.getAttribute(attr)
-    if val and len(val) > 0:
-        return val
-    parent = element.parentElement
-    if parent:
-        return find_attr_parents(parent, attr)
 
 
 async def source_url(event):

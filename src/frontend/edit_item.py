@@ -3,7 +3,14 @@ imprint = document.getElementById("imprint")
 author = document.getElementById("author")
 shelfmark = document.getElementById("shelfmark")
 
-REQUIRED_FIELDS = ["CAPTION", "INSTIT_CERLID", "SHELFMARK", "TYPE_INS", "IC", "OWNERS_CERLID"]
+REQUIRED_FIELDS = [
+    "CAPTION",
+    "INSTIT_CERLID",
+    "SHELFMARK",
+    "TYPE_INS",
+    "IC",
+    "OWNERS_CERLID",
+]
 
 FIELDS_MAP = {
     "URL_WEBPAGE": "#source_url",

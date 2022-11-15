@@ -69,11 +69,11 @@ async def get(objid):
             obj[k] = tmp
 
     # fetch any annotations
-    for user, value, timestamp in await database.fetch_all(
-        "SELECT user, value, timestamp FROM annotation WHERE uid = :uid",
+    for rowid, user, value, timestamp in await database.fetch_all(
+        "SELECT rowid, user, value, timestamp FROM annotation WHERE uid = :uid",
         values={"uid": objid},
     ):
-        obj.setdefault("ANNOT", []).append((user, value, timestamp))
+        obj.setdefault("ANNOT", []).append((rowid, user, value, timestamp))
 
     return obj
 

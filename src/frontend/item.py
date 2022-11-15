@@ -8,6 +8,15 @@ clipboard = """<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" fi
 </svg>"""
 
 
+def find_attr_parents(element, attr):
+    val = element.getAttribute(attr)
+    if val and len(val) > 0:
+        return val
+    parent = element.parentElement
+    if parent:
+        return find_attr_parents(parent, attr)
+
+
 def citable_uri_click(event):
     event.preventDefault()
     navigator.clipboard.writeText("https://pda.cerl.org/id/" + document.objId)
@@ -19,8 +28,50 @@ def citable_uri_click(event):
     setTimeout(reset_contents, 1000)
 
 
+async def save_comment_click(event):
+    event.preventDefault()
+    txt = document.getElementById("commentInput").value
+    if len(txt) < 2:
+        return
+    h = __new__(Headers)
+    h.append("Content-Type", "application/json")
+    result = await fetch(
+        "/comment/",
+        {
+            "method": "POST",
+            "credentials": "same-origin",
+            "headers": h,
+            "body": JSON.stringify({"txt": txt, "obj_id": document.objId}),
+        },
+    )
+    response = await result.json()
+    document.location.reload()
+
+
+async def delete_comment_click(event):
+    event.preventDefault()
+    rowid = find_attr_parents(event.target, "data-rowid")
+    if len(rowid) < 1:
+        return
+    h = __new__(Headers)
+    h.append("Content-Type", "application/json")
+    result = await fetch(
+        "/comment/delete/" + rowid,
+        {
+            "method": "POST",
+            "credentials": "same-origin",
+            "headers": h,
+        },
+    )
+    response = await result.json()
+    document.location.reload()
+
+
 def init():
     document.getElementById("citable_uri").addEventListener("click", citable_uri_click)
+    document.getElementById("saveComment").addEventListener("click", save_comment_click)
+    for d in document.querySelectorAll(".deleteComment"):
+        d.addEventListener("click", delete_comment_click)
 
 
 window.addEventListener("load", init)

@@ -183,6 +183,30 @@ async def api_save(anid: str, obj: Obj, user=Depends(authenticated_user)):
     return {"ID": new_obj["ID"][0]}
 
 
+class Comment(BaseModel):
+    obj_id: str
+    txt: str
+
+
+@app.post("/comment")
+async def comment(cmnt: Comment, user=Depends(authenticated_user)):
+    r = await database.execute(
+        "INSERT INTO annotation VALUES (:user, :uid, 'COMMENT', :value, datetime())",
+        values={"user": user.username, "uid": cmnt.obj_id, "value": cmnt.txt},
+    )
+    return {"status": "OK"}
+
+
+@app.post("/comment/delete/{rowid:str}")
+async def delete_comment(
+    request: Request, rowid: str, user=Depends(authenticated_user)
+):
+    r = await database.execute(
+        "DELETE FROM annotation WHERE rowid = :rowid", values={"rowid": rowid}
+    )
+    return {"status": "OK"}
+
+
 def render_obj_with(request: Request, obj, template_name):
     # Try to find the owner from the admin table
     tmp = list(filter(None, [get_user_fromdb(u) for u in obj.get("UPLOADER", [])]))

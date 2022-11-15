@@ -41,6 +41,8 @@ COPY src /home/src
 
 COPY --from=transcrypt /home/homepage /home/src/static/homepage
 COPY --from=transcrypt /home/edit_item /home/src/static/edit_item
+COPY --from=transcrypt /home/item /home/src/static/item
+
 
 WORKDIR /home/src
 

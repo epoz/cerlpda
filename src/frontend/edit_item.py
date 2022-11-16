@@ -11,7 +11,6 @@ REQUIRED_FIELDS = [
     "SHELFMARK",
     "TYPE_INS",
     "IC",
-    "OWNERS_CERLID",
 ]
 
 FIELDS_MAP = {
@@ -234,7 +233,7 @@ async def dropdown_click_handler(event):
     if field and value:
         document.obj[field] = [value]
         if field == "PAGE":
-            if value == "Page number":
+            if value == "Page/Folio number":
                 elem = document.querySelector(target)
                 elem.value = ""
                 elem.focus()

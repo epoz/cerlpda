@@ -37,6 +37,7 @@ field_titles = {
     "HEIGHT": "Height",
     "TITLE": "Title",
     "COMMENT": "Notes",
+    "DATE_ORIG": "Exact Date",
 }
 
 

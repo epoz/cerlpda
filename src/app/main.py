@@ -163,7 +163,7 @@ async def api_save(anid: str, obj: Obj, user=Depends(authenticated_user)):
     for k, v in obj.dict().items():
         if v:
             new_obj[k] = v
-    new_obj.setdefault("TIMESTAMP", []).append(time.ctime())
+    new_obj["TIMESTAMP"] = [time.strftime("%Y/%m/%d %H:%M:%S")]
 
     if anid == "_":
         tmp = "".join([random.choice("0123456789abcdef") for x in range(5)])

@@ -10,7 +10,8 @@ from jinja2 import Markup
 from hashlib import md5
 import databases, os, json, random, time
 from urllib.parse import quote_plus
-import markdown, httpx, openpyxl
+import httpx, openpyxl
+from markdown import Markdown
 from pydantic import BaseModel
 from typing import List, Optional
 from .util import (
@@ -107,7 +108,7 @@ async def help(request: Request, page: str):
     infilepath = os.path.join(HELP_PATH, f"{page}.md")
     if not os.path.exists(infilepath):
         raise HTTPException(status_code=404, detail=f"Page [{page}] not found")
-    md = markdown.Markdown(
+    md = Markdown(
         output_format="html5", extensions=["nl2br", "meta", "attr_list", "tables"]
     )
     html = md.convert(open(infilepath).read())
@@ -322,6 +323,9 @@ async def fragments_search(
 ):
     batch = await api_search(q, size)
     batch["results"] = [(TF(b), b) for b in batch["results"]]
+    pages = round(batch["total"] / size)
+    if pages > 10:
+        pages = 10
 
     if tipe == "thumbs":
         template_name = "fragments_search.html"
@@ -331,16 +335,13 @@ async def fragments_search(
     templates.env.filters["strip_cerlid"] = strip_cerlid
     response = templates.TemplateResponse(
         template_name,
-        {
-            "request": request,
-            "data": batch,
-        },
+        {"request": request, "data": batch, "pages": pages, "page": 1},
     )
     return response
 
 
 @app.get("/search")
-async def search(request: Request, q: str = "", size: int = 20, page: int = 0):
+async def search(request: Request, q: str = "", size: int = 50, page: int = 0):
     batch = await api_search(q, size, page)
 
     pages = round(batch["total"] / size)

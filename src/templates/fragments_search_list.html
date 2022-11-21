@@ -1,21 +1,52 @@
 <div class="row justify-content-center" style="border-bottom: 1px solid #ccc">
     <div class="col-4">{{data.total}} items</div>
+    <div class="col-4 align-self-center">{{data.total}} items
+
+        {% if pages > 1 %}
+        <nav aria-label="Page navigation">
+        <ul class="pagination .pagination-sm">
+            {% if page > 0 %}
+            <li class="page-item">
+            <a class="page-link" href="/search/?page={{page-1}}&q={{q}}" aria-label="Previous">
+                <span aria-hidden="true">&laquo;</span>
+            </a>
+            </li>
+            {% endif %}
+
+            {% for ppage in range(pages) %}
+            <li class="page-item"><a class="page-link" href="/search/?page={{ppage}}&q={{q}}">{{ppage+1}}</a></li>
+            {% endfor %}
+
+            {% if page < pages %}
+            <li class="page-item">
+            <a class="page-link" href="/search/?page={{page+1}}&q={{q}}" aria-label="Next">
+                <span aria-hidden="true">&raquo;</span>
+            </a>
+            </li>
+            {% endif %}
+
+        </ul>
+        </nav>{% endif %}
+
+    </div>
+
+    
+
 </div>
 
 {% for TF, obj in data.results %}
 <div class="row p-1" anid="{{obj.get('ID')[0]}}">
-<div class="col">
-    <img src="/iiif/2/{{obj.get('URL_IMAGE')[0]}}/full/300,/0/default.jpg">
-</div>
-<div class="col">
-    {{TF("CAPTION")[2]}}
-</div>
-<div class="col">
-    {{obj.get('OWNERS_CERLID', ["x|Unidentified 🎈"])[0]|strip_cerlid}}
-</div>
-<div class="col">
-    {{obj["TYPE_INS"][0]}}
-</div>
-
+    <div class="col">
+        <img src="/iiif/2/{{obj.get('URL_IMAGE')[0]}}/full/300,/0/default.jpg">
+    </div>
+    <div class="col">
+        {{TF("CAPTION")[2]}}
+    </div>
+    <div class="col">
+        {{obj.get('OWNERS_CERLID', ["x|Unidentified 🎈"])[0]|strip_cerlid}}
+    </div>
+    <div class="col">
+        {{obj["TYPE_INS"][0]}}
+    </div>
 </div>
 {% endfor %}

@@ -13,17 +13,21 @@ async def update_grid():
 
 
 async def do_search():
-    result = await fetch("/fragments/search?q=" + searchbox.value)
-    response = await result.text()
-    searchresults.innerHTML = response
-    document.imagesLoaded(document.querySelector(".grid"), update_grid)
+    document.location = "/search?q=" + searchbox.value
+
+
+async def do_search_suggest():
+    console.log(".")
 
 
 async def searchbox_keyup(event):
     event.preventDefault()
+    if event.keyCode == 13:
+        do_search()
+
     if document.searchbounce > 0:
         clearTimeout(document.searchbounce)
-    document.searchbounce = setTimeout(do_search, 500)
+    document.searchbounce = setTimeout(do_search_suggest, 500)
 
 
 async def result_handler(event):
@@ -33,10 +37,15 @@ async def result_handler(event):
         document.location = "/id/" + anid
 
 
+async def set_location_to_search(event):
+    event.preventDefault()
+    document.location = "/search"
+
+
 async def init():
     searchbox.addEventListener("keyup", searchbox_keyup)
     if showrandom:
-        showrandom.addEventListener("click", searchbox_keyup)
+        showrandom.addEventListener("click", set_location_to_search)
     searchresults.addEventListener("click", result_handler)
     searchbox.focus()
 

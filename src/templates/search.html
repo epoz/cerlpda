@@ -1,55 +1,25 @@
+{% import "utils.html" as utils with context %}
 {% extends "homepage.html" %}
+
+{% block content_title %}
+<div class="container-fluid" style="padding: 0 0 0 2vw; margin-top: 4vh">
+    <div class="row justify-content-md-center">
+            <div class="col-9">
+                <input style="width: 100%" type="search" id="searchbox" placeholder="Type here to start searching..." value="{{q}}"/>
+            </div>
+            <div class="col-2">
+                <a href="/help/searchtips" style="font-size: 75%; font-family: Satyr Smallcaps; color: #888;">Search tips</a>
+            </div>        
+    </div> 
+
+</div>
+{% endblock content_title %}
+
 
 
 {% block searchresults %}
 <div id="searchresults" style="padding: 1vh 1vw 5vh 5vw; margin-top: 2vh">
-
-    <div class="row justify-content-center">
-        <div class="col-4 align-self-center">{{data.total}} items
-
-            {% if pages > 1 %}
-            <nav aria-label="Page navigation">
-            <ul class="pagination .pagination-sm">
-                {% if page > 0 %}
-                <li class="page-item">
-                <a class="page-link" href="?page={{page-1}}" aria-label="Previous">
-                    <span aria-hidden="true">&laquo;</span>
-                </a>
-                </li>
-                {% endif %}
-
-                {% for ppage in range(pages) %}
-                <li class="page-item"><a class="page-link" href="?page={{ppage}}">{{ppage+1}}</a></li>
-                {% endfor %}
-
-                {% if page < pages %}
-                <li class="page-item">
-                <a class="page-link" href="?page={{page+1}}" aria-label="Next">
-                    <span aria-hidden="true">&raquo;</span>
-                </a>
-                </li>
-                {% endif %}
-
-            </ul>
-            </nav>{% endif %}
-
-        </div>
-
-    </div>
-
-
-    <div class="row grid" data-masonry='{"percentPosition": true }' style="padding: 2vw">
-    {% for obj in data.results %}
-    <div class="col-sm-6 col-lg-2 mb-4 grid-item" anid="{{obj.get('ID')[0]}}">
-        <div class="card">
-        <a target="cerlpda_item" href="/id/{{obj.get('ID')[0]}}"><img width="100%" src="/iiif/2/{{obj.get('URL_IMAGE')[0]}}/full/150,/0/default.jpg"></a>
-        <div class="card-body">
-            <p style="font-size: 75%" class="card-title">{{obj.get('CAPTION')[0]}}</p>
-        </div>
-        </div>
-    </div>
-    {% endfor %}
-    </div>
-
+    {{utils.searchresults()}}
 </div>
+
 {% endblock searchresults %}

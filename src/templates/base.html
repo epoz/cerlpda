@@ -32,9 +32,6 @@
                 <li>
                     <a href="/canyouhelp/" class="nav-link px-2 text-warning">Can You Help?</a>
                 </li>
-                <li>
-                    <a href="/help/about" class="nav-link px-2 text-light">About</a>
-                </li>
                 <li>{% block login %}
                     {% if request.user.is_authenticated %}
                         <a href="/logout" type="button" class="nav-link px-2 text-light" title="{{request.user.username}}">Logout</a>
@@ -50,7 +47,7 @@
 
     {% block content %}{% endblock %}
 
-    <div style="font-size: 50%; text-align: right; padding-right: 1vw">v 20221116</div>
+    <div style="font-size: 50%; text-align: right; padding-right: 1vw">v 20221120</div>
 
     <footer class="container-fluid" style="background-color: #333; padding: 2vh 1vh 4vh 3vh">
         <div class="row">

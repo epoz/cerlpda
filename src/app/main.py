@@ -184,6 +184,21 @@ async def api_save(anid: str, obj: Obj, user=Depends(authenticated_user)):
     return {"ID": new_obj["ID"][0]}
 
 
+@app.delete("/id/{anid:str}")
+async def api_delete(anid: str, user=Depends(authenticated_user)):
+    if not user.is_admin:
+        raise HTTPException(405, "You are not an Admin user")
+    r = await database.execute(
+        "INSERT INTO history SELECT :user, CURRENT_TIMESTAMP, id, obj FROM source WHERE id = :id",
+        values={"user": user.username, "id": anid},
+    )
+    r = await database.execute(
+        "DELETE FROM source WHERE id = :id",
+        values={"id": anid},
+    )
+    return {"deleted": anid}
+
+
 class Comment(BaseModel):
     obj_id: str
     txt: str

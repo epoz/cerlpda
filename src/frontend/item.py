@@ -60,7 +60,18 @@ async def delete_comment_click(event):
     document.location.reload()
 
 
+async def on_delete_item(event):
+    result = await fetch(
+        "/id/" + document.objId, {"method": "DELETE", "credentials": "same-origin"}
+    )
+    if result.status == 200:
+        document.location = "/"
+    else:
+        alert("This deletion not allowed")
+
+
 def init():
+    document.getElementById("delete").addEventListener("click", on_delete_item)
     document.getElementById("citable_uri").addEventListener("click", citable_uri_click)
     document.getElementById("saveComment").addEventListener("click", save_comment_click)
     for d in document.querySelectorAll(".deleteComment"):

@@ -33,7 +33,7 @@
                 {% if request.user.is_admin or obj["UPLOADER"][0][0] == request.user.username %}
                 <a class="btn btn-sm btn-info" href="/edit/{{obj['ID'][0]}}">Edit</a>{% endif %}
                 {% if request.user.is_admin %}
-                <a class="btn btn-sm btn-danger" href="#">Delete</a>{% endif %}
+                <a class="btn btn-sm btn-danger" href="#" id="delete">Delete</a>{% endif %}
                 {% if request.user.is_authenticated %}
                 <a class="btn btn-sm btn-secondary" href="#" data-bs-toggle="modal" data-bs-target="#commentModal">Comment</a>
                 {% endif %}

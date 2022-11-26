@@ -61,13 +61,14 @@ async def delete_comment_click(event):
 
 
 async def on_delete_item(event):
-    result = await fetch(
-        "/id/" + document.objId, {"method": "DELETE", "credentials": "same-origin"}
-    )
-    if result.status == 200:
-        document.location = "/"
-    else:
-        alert("This deletion not allowed")
+    if window.confirm("Please confirm deletion of this item, do you want to continue?"):
+        result = await fetch(
+            "/id/" + document.objId, {"method": "DELETE", "credentials": "same-origin"}
+        )
+        if result.status == 200:
+            document.location = "/"
+        else:
+            alert("This deletion not allowed")
 
 
 def init():

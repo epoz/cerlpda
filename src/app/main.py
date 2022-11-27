@@ -2,7 +2,14 @@ from fastapi.responses import HTMLResponse, JSONResponse, RedirectResponse, Resp
 from fastapi.exception_handlers import http_exception_handler
 from starlette.exceptions import HTTPException as StarletteHTTPException
 from fastapi import Depends, FastAPI, Request, HTTPException, File, UploadFile
-from .config import ORIGINS, DATABASE_URL, HELP_PATH, UPLOADS_PATH
+from .config import (
+    ORIGINS,
+    DATABASE_URL,
+    HELP_PATH,
+    UPLOADS_PATH,
+    CERL_THESAURUS_API_USERNAME,
+    CERL_THESAURUS_API_PASSWORD,
+)
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.templating import Jinja2Templates
 from fastapi.staticfiles import StaticFiles
@@ -555,3 +562,96 @@ async def listview(request: Request, page: int = 0, size: int = 100):
 @app.get("/r/{u:path}")
 async def redirector(request: Request, u: str):
     return RedirectResponse(f"https://arkyves.org/r/{u}")
+
+
+CERL_THESAURUS_API_URL = "https://data.cerl.org/_new/thesaurus"
+CERL_THESAURUS_API_URL_LOGIN = "https://data.cerl.org/_login/thesaurus"
+
+
+class Payload(BaseModel):
+    action: str  # One of add_person, add_place, add_corporate
+    entry: str
+    firstname: Optional[str]
+    nonsort: Optional[str]
+    addition: Optional[str]
+    notes: Optional[str]
+
+
+@app.post("/api/cerlthesaurus")
+def cerlthesaurus(payload: Payload, user=Depends(authenticated_user)):
+
+    payload = payload.dict()
+    action = payload.get("action", "add_person")
+
+    part = []
+    for field in ("entry", "firstname", "nonsort", "addition"):
+        if payload.get(field):
+            tmp_heading = {field: payload[field]}
+            part.append(tmp_heading)
+
+    if not part:
+        raise HTTPException(
+            status_code=500,
+            detail="Could not find one of: [entry, firstname, nonsort, addition] in payload",
+        )
+
+    data = {
+        "data": {"heading": [{"part": part}], "typeOfEntry": "9", "entitytype": "cnl"},
+        "meta": {
+            "remark": [
+                f"Created by {user.username} via CERL Provenance Digital Archive"
+            ],
+            "flag": ["CPDA"],
+            "status": "new",
+        },
+    }
+
+    if action == "add_person":
+        data["data"]["gender"] = payload.get("gender", "b")
+        data["data"]["entitytype"] = "cnp"
+
+    if action == "add_corporate":
+        data["data"]["entitytype"] = "cnc"
+
+    if "notes" in payload and len(payload["notes"]) > 0:
+        data["data"]["generalNote"] = [{"text": payload["notes"], "lang": "eng"}]
+
+    # Add the User info to the history
+    data["meta"]["history"] = [
+        {"timestamp": datetime.now().isoformat(), "editor": "cerlpda"}
+    ]
+
+    data_json = json.dumps(data, indent=2)
+    # Also save the entry to local disk before sending to CERL CT Server
+    filename = os.path.join(UPLOADS_PATH, "CERLThesaurus", datetime.now().isoformat())
+    open(filename, "w").write(data_json)
+
+    # And now also POST it to the CERL.
+    # first log in and get a cookie
+    r = httpx.post(
+        CERL_THESAURUS_API_URL_LOGIN,
+        data={
+            "username": CERL_THESAURUS_API_USERNAME,
+            "password": CERL_THESAURUS_API_PASSWORD,
+        },
+    )
+
+    if r.status_code == 200 or r.status_code == 302:
+        loggedin_cookie = r.cookies
+        headers = {"Accept": "application/json", "Content-Type": "application/json"}
+
+        r2 = httpx.post(
+            CERL_THESAURUS_API_URL,
+            headers=headers,
+            data=json.dumps(data),
+            cookies=loggedin_cookie,
+        )
+
+        if r2.status_code == 201:
+            # Also save the ID created upon a success.
+            data["CERLThesaurus"] = r2.json()
+            open(filename, "w").write(json.dumps(data, indent=2))
+            return data
+        else:
+            raise Exception(f"The remote CT server returned an error {r2.status_code}")
+    raise Exception(f"Posting to CERL Thesaurus failed {r.status_code}")

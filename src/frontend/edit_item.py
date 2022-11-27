@@ -372,10 +372,59 @@ async def savebutton_handler(event):
     document.location = "/id/" + response["ID"]
 
 
+async def add_missing_item(event):
+    data = {}  # "entry", "firstname", "nonsort", "addition"
+    missing_tab = find_attr_parents(event.target, "data-missing")
+    if missing_tab == "place":
+        data["action"] = "add_place"
+        tmp = document.getElementById("missing_place").value
+        if len(tmp) < 2:
+            return
+        data["entry"] = tmp
+        tmp = document.getElementById("missing_place_comment").value
+        if len(tmp) > 0:
+            data["notes"] = tmp
+    if missing_tab == "person":
+        data["action"] = "add_person"
+        tmp = document.getElementById("missing_lastname").value
+        if len(tmp) < 2:
+            return
+        data["entry"] = tmp
+        for elem_name, key_name in [
+            ["missing_firstname", "firstname"],
+            ["missing_prefix", "nonsort"],
+            ["missing_owner_comment", "notes"],
+        ]:
+            tmp = document.getElementById(elem_name).value
+            if len(tmp) > 1:
+                data[key_name] = tmp
+
+    if missing_tab == "corporate":
+        data["action"] = "add_corporate"
+        data["entry"] = document.getElementById("missing_corporatebody").value
+        data["notes"] = document.getElementById("missing_corporatebody_comment").value
+    h = __new__(Headers)
+    h.append("Content-Type", "application/json")
+    result = await fetch(
+        "/api/cerlthesaurus",
+        {
+            "method": "POST",
+            "credentials": "same-origin",
+            "headers": h,
+            "body": JSON.stringify(data),
+        },
+    )
+    response = await result.json()
+
+    console.log("Added new " + missing_tab)
+
+
 async def init():
     document.getElementById("source_url").addEventListener("keyup", source_url)
     document.getElementById("filechooser").addEventListener("change", filechosen)
 
+    for item in document.querySelectorAll(".add_missing_item"):
+        item.addEventListener("click", add_missing_item)
     for item in document.querySelectorAll(".ct_modal_search"):
         item.addEventListener("keyup", modal_search_handler)
     for item in document.querySelectorAll(".century_choice"):

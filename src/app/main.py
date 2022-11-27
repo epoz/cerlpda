@@ -607,7 +607,7 @@ def cerlthesaurus(payload: Payload, user=Depends(authenticated_user)):
     }
 
     if action == "add_person":
-        data["data"]["gender"] = payload.get("gender", "b")
+        data["data"]["gender"] = payload.get("gender", "x")
         data["data"]["entitytype"] = "cnp"
 
     if action == "add_corporate":

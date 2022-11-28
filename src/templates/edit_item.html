@@ -472,8 +472,17 @@
                 </svg>
             </a>
             <div style="display: inline" id="owners"></div>
-        </div>        
+        </div>
+
+
     </div>
+
+    <div class="row">
+        <div class="col">
+                    <a data-bs-toggle="modal" data-bs-target="#add_missing_modal" class="btn btn-secondary add_missing_button" href="#">Add Lookup Items</a>
+        </div>
+    </div>
+    
 
     <div class="row mt-2">
         <div class="col">
@@ -485,8 +494,7 @@
     <div class="row" style="margin-top: 5vh; border-top: 2px solid #ddd; padding-top: 1vh">
         <div class="col">
             <a class="btn btn-warning save_button" href="#">Save this item</a>
-            {% if anid != "_" %}<a class="btn btn-secondary" href="/id/{{anid}}">Cancel editing</a>{% endif %}
-            <a data-bs-toggle="modal" data-bs-target="#add_missing_modal"  style="margin-left: 1ch" class="btn btn-secondary add_missing_button" href="#">Add Lookup Items</a>
+            {% if anid != "_" %}<a class="btn btn-secondary" href="/id/{{anid}}">Cancel editing</a>{% endif %}            
         </div>
     </div>
 

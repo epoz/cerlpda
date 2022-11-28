@@ -447,7 +447,7 @@ async def post_upload(file: UploadFile = File(...), user=Depends(authenticated_u
         ):
             raise HTTPException(
                 status_code=500,
-                detail=f"Only jpg image files are allowed, looks like this filename: {file_name} is not one of them",
+                detail=f"Only jpg image files are allowed",
             )
         contents = await file.read()
         hash_filename = md5(contents).hexdigest() + ".jpg"
@@ -613,7 +613,7 @@ def cerlthesaurus(payload: Payload, user=Depends(authenticated_user)):
     if action == "add_corporate":
         data["data"]["entitytype"] = "cnc"
 
-    if "notes" in payload and len(payload["notes"]) > 0:
+    if payload.get("notes") and len(payload["notes"]) > 0:
         data["data"]["generalNote"] = [{"text": payload["notes"], "lang": "eng"}]
 
     # Add the User info to the history

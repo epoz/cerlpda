@@ -72,7 +72,9 @@ async def on_delete_item(event):
 
 
 def init():
-    document.getElementById("delete").addEventListener("click", on_delete_item)
+    delete_button = document.getElementById("delete")
+    if delete_button:
+        delete_button.addEventListener("click", on_delete_item)
     document.getElementById("citable_uri").addEventListener("click", citable_uri_click)
     document.getElementById("saveComment").addEventListener("click", save_comment_click)
     for d in document.querySelectorAll(".deleteComment"):

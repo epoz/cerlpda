@@ -37,6 +37,7 @@
                 {% if request.user.is_authenticated %}
                 <a class="btn btn-sm btn-secondary" href="#" data-bs-toggle="modal" data-bs-target="#commentModal">Comment</a>
                 {% endif %}
+                <a href="/iiif/2/{{obj.get('URL_IMAGE', [''])[0]}}/info.json" class="btn btn-sm  btn-secondary"><img src="/static/iiif_logo.png" alt="The IIIF Logo"></a>
               </div>            
             {% if "CANYOUHELP" in obj %}
             <div class="col"><a class="btn btn-sm btn-secondary" href="/canyouhelp">This item is in "Can You Help?"</a></div>

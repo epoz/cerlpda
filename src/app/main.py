@@ -175,6 +175,7 @@ async def api_save(anid: str, obj: Obj, user=Depends(authenticated_user)):
     if anid == "_":
         tmp = "".join([random.choice("0123456789abcdef") for x in range(5)])
         new_obj["ID"] = [f"cerlpda_{tmp}"]
+        new_obj["UPLOADER"] = [user.username]
         r = await database.execute(
             "INSERT INTO source VALUES (:id, :obj)",
             values={"obj": json.dumps(new_obj), "id": new_obj["ID"][0]},

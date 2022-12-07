@@ -30,7 +30,7 @@
         <div class="row" style="padding: 0 2vw 0 2vw">
             <div class="col">
                 
-                {% if request.user.is_admin %}
+                {% if request.user.is_admin  or (obj["UPLOADER"] and obj["UPLOADER"][0][0] == request.user.username )%}
                 <a class="btn btn-sm btn-info" href="/edit/{{obj['ID'][0]}}">Edit</a>{% endif %}
                 {% if request.user.is_admin %}
                 <a class="btn btn-sm btn-danger" href="#" id="delete">Delete</a>{% endif %}

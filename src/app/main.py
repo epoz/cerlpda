@@ -31,6 +31,7 @@ from .util import (
     to_paras,
     ic,
     markdown,
+    owner_or_unknown,
 )
 
 database = databases.Database(DATABASE_URL)
@@ -370,6 +371,8 @@ async def search(request: Request, q: str = "", size: int = 50, page: int = 0):
     pages = round(batch["total"] / size)
     if pages > 10:
         pages = 10
+
+    templates.env.filters["owner_or_unknown"] = owner_or_unknown
 
     response = templates.TemplateResponse(
         "search.html",

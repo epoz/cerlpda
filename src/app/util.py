@@ -119,6 +119,15 @@ def cerl_thesaurus(value):
     return to_link("https://data.cerl.org/thesaurus/", value)
 
 
+def owner_or_unknown(value):
+    if value is None:
+        return "Unidentified 🎈"
+    values = value.split("|")
+    if len(values) != 2:
+        return "Unidentified 🎈"
+    return values[1]
+
+
 def to_paras(value):
     tmp = [f"<p class='notespara'>{v}</p>" for v in value.split("\n")]
     return Markup("".join(tmp))

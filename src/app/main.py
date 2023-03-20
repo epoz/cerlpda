@@ -173,6 +173,11 @@ async def api_save(anid: str, obj: Obj, user=Depends(authenticated_user)):
             new_obj[k] = v
     new_obj["TIMESTAMP"] = [time.strftime("%Y/%m/%d %H:%M:%S")]
 
+    # Fix the IC codes that have | symbols
+    ics = [i.split("|")[0] for i in new_obj.get("IC", [])]
+    if ics:
+        new_obj["IC"] = ics
+
     if anid == "_":
         tmp = "".join([random.choice("0123456789abcdef") for x in range(5)])
         new_obj["ID"] = [f"cerlpda_{tmp}"]
@@ -251,6 +256,23 @@ def render_obj_with(request: Request, obj, template_name):
 
 
 async def fragments_modal_iconclass(request: Request, q: str, size: int = 20):
+    if len(q) < 2:
+        return templates.TemplateResponse(
+            "fragments_modal_search.html",
+            {
+                "request": request,
+                "field": "IC",
+                "target": "#iconclass",
+                "data": [
+                    {"id": "49M8", "name": "49M8 Ex Libris"},
+                    {"id": "49L7", "name": "49L7 handwriting, written text"},
+                    {"id": "49L65", "name": "49L65 seal, stamp"},
+                    {"id": "49L27", "name": "49L27 mark of ownership"},
+                    {"id": "49L17", "name": "49L17 initial"},
+                ],
+            },
+        )
+
     r = httpx.get("https://iconclass.org/api/search?q=" + quote_plus(q))
     if r.status_code == 200:
         result = r.json()

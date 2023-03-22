@@ -248,9 +248,11 @@ def render_obj_with(request: Request, obj, template_name):
     templates.env.filters["to_paras"] = to_paras
     templates.env.filters["ic"] = ic
     templates.env.filters["markdown"] = markdown
+
+    tweet_text = f"CERL PDA Provenance https://pda.cerl.org/id/{obj.get('ID')[0]}"
     response = templates.TemplateResponse(
         template_name,
-        {"request": request, "obj": obj, "TF": TF(obj)},
+        {"request": request, "obj": obj, "TF": TF(obj), "tweet_text": tweet_text},
     )
     return response
 

@@ -284,6 +284,11 @@ def set_the(field, dest, is_modal=False, is_multi=False):
     if field not in document.obj:
         return
     elem = document.querySelector(dest)
+    # special treatement for the url_seealso field
+    if field == "URL_SEEALSO":
+        if document.obj[field]:
+            elem.innerHTML = "\n".join(document.obj[field])
+        return
     if is_multi:
         elem.innerHTML = ""
     for val in document.obj[field]:
@@ -337,6 +342,18 @@ def save_fields():
         document.obj["CANYOUHELP"] = [Date.now()]
     else:
         document.obj["CANYOUHELP"] = []
+    # Handle the URL_SEEALSO field specially to only filter items that start with http
+    document.obj["URL_SEEALSO"] = []  # default to empty, and only set if valid values
+    url_seealso = document.getElementById("url_seealso")
+    val = url_seealso.value
+    if len(val) > 8:
+        vals = [
+            x
+            for x in val.split("\n")
+            if x.startswith("http://") or x.startswith("https://")
+        ]
+        if len(vals) > 0:
+            document.obj["URL_SEEALSO"] = vals
 
 
 async def savebutton_handler(event):
@@ -459,6 +476,7 @@ async def init():
         set_the("TECHNIQUE", "#technique", True)
         set_the("OWNERS_CERLID", "#owners", False, True)
         set_the("LOCATION_ORIG_CERLID", "#places", False, True)
+        set_the("URL_SEEALSO", "#url_seealso")
         showthumbnails()
 
 

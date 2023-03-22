@@ -95,8 +95,18 @@
 
         {% if obj["URL_WEBPAGE"] %}
         <div style="text-align: right">
-        See:  <a href="{{obj["URL_WEBPAGE"][0]}}">{{obj["URL_WEBPAGE"][0]}}</a></div>
+        See:  <a target="_mei" href="{{obj["URL_WEBPAGE"][0]}}">{{obj["URL_WEBPAGE"][0]}}</a></div>
         {% endif %}
+        {% if obj["URL_SEEALSO"] %}
+        <div style="text-align: right; max-height: 30vh; overflow: scroll">
+        Other usage:  {% for seealso in obj["URL_SEEALSO"] %}
+            <a style="display: block" target="_mei" href="{{seealso}}">{{seealso}}</a>
+        {% endfor %}
+        
+        
+        </div>
+        {% endif %}
+                
         {% if obj["NOTES"] %}
         <p class="hed" style="margin: 0">Notes:</p>
         <div style="margin-bottom: 3vh">{{obj["NOTES"][0]|to_paras}}</div>

@@ -414,12 +414,13 @@ async def search(request: Request, q: str = "", size: int = 50, page: int = 0):
 async def canyouhelp(request: Request, page: int = 0, size: int = 100):
 
     search_results = await database.fetch_all(
-        "SELECT id FROM source WHERE length(canyouhelp) > 0 ORDER BY id"
+        "SELECT id FROM source WHERE length(canyouhelp) > 0 AND json_extract(obj, '$.OWNERS_CERLID') IS NULL ORDER BY id"
     )
     batch = await fetch(search_results, size, page=page)
 
     pages = round(batch["total"] / size)
 
+    templates.env.filters["owner_or_unknown"] = owner_or_unknown
     response = templates.TemplateResponse(
         "search.html",
         {"request": request, "data": batch, "size": size, "page": page, "pages": pages},

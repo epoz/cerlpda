@@ -9,6 +9,7 @@ from .config import (
     UPLOADS_PATH,
     CERL_THESAURUS_API_USERNAME,
     CERL_THESAURUS_API_PASSWORD,
+    ADMIN_DATABASE,
 )
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.templating import Jinja2Templates
@@ -21,6 +22,7 @@ import httpx, openpyxl
 from markdown import Markdown
 from pydantic import BaseModel
 from typing import List, Optional
+import traceback
 from .util import (
     TF,
     load,
@@ -224,6 +226,34 @@ async def comment(cmnt: Comment, user=Depends(authenticated_user)):
         "INSERT INTO annotation VALUES (:user, :uid, 'COMMENT', :value, datetime())",
         values={"user": user.username, "uid": cmnt.obj_id, "value": cmnt.txt},
     )
+
+    try:
+        db = sqlite3.connect(ADMIN_DATABASE)
+        usernames = [
+            username for username in db.execute("SELECT username FROM admin_users")
+        ]
+        obj_owner = [
+            u
+            for u in await database.fetch_all(
+                "select json_extract(obj, '$.UPLOADER[0]') from source WHERE id = :uid",
+                values={"uid": cmnt.obj_id},
+            )
+        ]
+        usernames.append(obj_owner)
+
+        # Find the list of admin_users to send the mail to
+        msg = f"""A comment was made on the CERL PDA item  https://pda.cerl.org/id/{cmnt.obj_id}"""
+
+        send_email(
+            CONTACT_EMAIL,
+            usernames,
+            f"CERL PDA Comment {cmnt.obj_id}",
+            msg,
+        )
+    except:
+        # Flag a Sentry exception here!
+        traceback.print_exc()
+
     return {"status": "OK"}
 
 

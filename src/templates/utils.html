@@ -44,8 +44,15 @@
     <a target="cerlpda_item" href="/id/{{obj.get('ID')[0]}}">
         <img src="/iiif/2/{{obj.get('URL_IMAGE')[0]}}/full/300,/0/default.jpg">
     </a>
-    <div class="card-body">
-        <p style="font-size: 75%" class="card-title">{{obj.get('OWNERS_CERLID', [None])[0]|owner_or_unknown }}</p>
+    <div class="card-body">        
+        <p style="font-size: 75%" class="card-title">
+        {% if obj.get('OWNERS_CERLID') %}
+            {{obj.get('OWNERS_CERLID', [None])[0]|owner_or_unknown }}
+        {% else %}
+            Unidentified 🎈
+        {% endif %}
+        
+        </p>
     </div>
     </div>
 </div>

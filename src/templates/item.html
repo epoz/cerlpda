@@ -14,7 +14,9 @@
 
 {% block head_last%}
 <meta property="og:title" content="CERL PDA · {{obj['ID'][0]}}" />
+{% if obj.get('URL_IMAGE') %}
 <meta property="og:image" content="https://pda.cerl.org/iiif/2/{{obj['URL_IMAGE'][0]}}/full/300,/0/default.jpg" />
+{% endif %}
 <meta name="twitter:card" content="summary_large_image">
 <meta name="twitter:title" content="CERL PDA · cerlpda_01354">
 

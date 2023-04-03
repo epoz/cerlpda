@@ -620,7 +620,10 @@ async def listview(request: Request, page: int = 0, size: int = 100):
 
 @app.get("/r/{u:path}")
 async def redirector(request: Request, u: str):
-    return RedirectResponse(f"https://arkyves.org/r/{u}")
+    u = u.replace("view/", "")
+    u = u.replace("/him_CERLPDA", "")
+    u = u.replace("/all", "")
+    return RedirectResponse(f"/id/{u}")
 
 
 CERL_THESAURUS_API_URL = "https://data.cerl.org/_new/thesaurus"

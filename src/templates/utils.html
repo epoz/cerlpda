@@ -1,4 +1,4 @@
-{%macro searchresults() %}
+{%macro searchresults(searchurl) %}
 
 <div class="row justify-content-center" style="border-bottom: 1px solid #ccc">
         {% if pages > 1 %}
@@ -8,7 +8,7 @@
             <li class="page-item" style="align-self: center; margin-right: 1ch">{{data.total}} items</li>
             {% if page > 0 %}
             <li class="page-item">
-            <a class="page-link" href="/search/?page={{page-1}}&q={{q}}" aria-label="Previous">
+            <a class="page-link" href="{{searchurl}}/?page={{page-1}}&q={{q}}" aria-label="Previous">
                 <span aria-hidden="true">&laquo;</span>
             </a>
             </li>
@@ -19,14 +19,14 @@
             {% if page == loop.index %}
             <span class="page-link" style="font-weight: bold">{{ppage+1}}</span>            
             {% else %}
-                <a class="page-link" href="/search/?page={{ppage}}&q={{q}}">{{ppage+1}}</a>
+                <a class="page-link" href="{{searchurl}}/?page={{ppage}}&q={{q}}">{{ppage+1}}</a>
             {% endif %}
             </li>
             {% endfor %}
 
             {% if page < pages %}
             <li class="page-item">
-            <a class="page-link" href="/search/?page={{page+1}}&q={{q}}" aria-label="Next">
+            <a class="page-link" href="{{searchurl}}/?page={{page+1}}&q={{q}}" aria-label="Next">
                 <span aria-hidden="true">&raquo;</span>
             </a>
             </li>

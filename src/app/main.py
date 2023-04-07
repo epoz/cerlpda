@@ -437,6 +437,7 @@ async def search(request: Request, q: str = "", size: int = 50, page: int = 0):
             "page": page,
             "pages": pages,
             "q": q,
+            "searchurl": "/search",
         },
     )
     return response
@@ -455,7 +456,14 @@ async def canyouhelp(request: Request, page: int = 0, size: int = 100):
     templates.env.filters["owner_or_unknown"] = owner_or_unknown
     response = templates.TemplateResponse(
         "search.html",
-        {"request": request, "data": batch, "size": size, "page": page, "pages": pages},
+        {
+            "request": request,
+            "data": batch,
+            "size": size,
+            "page": page,
+            "pages": pages,
+            "searchurl": "/canyouhelp",
+        },
     )
     return response
 
@@ -464,7 +472,7 @@ async def canyouhelp(request: Request, page: int = 0, size: int = 100):
 async def api_search(q: str, size: int = 20, page: int = 0):
     if not q:
         search_results = await database.fetch_all(
-            "SELECT id FROM source WHERE id NOT IN (SELECT id FROM idx WHERE text MATCH 'Unidentified')"
+            "SELECT id FROM source ORDER BY RANDOM()"
         )
     else:
         query = "SELECT id FROM idx WHERE text MATCH :q ORDER BY rank"

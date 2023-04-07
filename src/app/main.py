@@ -113,6 +113,19 @@ async def homepage(request: Request):
     return response
 
 
+@app.get("/sitemap.xml")
+async def sitemap(request: Request):
+    response = templates.TemplateResponse(
+        "sitemap.html",
+        {
+            "request": request,
+            "uris": [u[0] for u in await database.fetch_all("select id from source")],
+        },
+        media_type="application/xml",
+    )
+    return response
+
+
 @app.get("/help/{page}", response_class=HTMLResponse, include_in_schema=False)
 async def help(request: Request, page: str):
     infilepath = os.path.join(HELP_PATH, f"{page}.md")

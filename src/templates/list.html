@@ -4,7 +4,7 @@
 {% block content %}
 <div class="container-fluid" style="padding: 1vh 1vw 5vh 5vw; text-align: right">
     <a class="btn btn-sm btn-primary" href="#can_you_help">Go to Can You Help?</a>
-    <a class="btn btn-sm btn-primary" href="#checked_by_editor">Go to Checked By Editor</a>
+    <a class="btn btn-sm btn-primary" href="#checked_by_editor">Go to Reviewed</a>
 </div>
 
 <div class="container-fluid" style="padding: 1vh 1vw 5vh 5vw; margin-top: 2vh">
@@ -18,7 +18,7 @@
 {{utils.listresults(loop.index, obj)}}    
 {% endfor %}
 
-<a  name="checked_by_editor"><h2>Checked by Editor</h2></a>
+<a  name="checked_by_editor"><h2>Reviewed</h2></a>
 {% for obj in checked_by_editor %}
 {{utils.listresults(loop.index, obj)}}    
 {% endfor %}

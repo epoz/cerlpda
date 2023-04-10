@@ -1,23 +1,27 @@
+{% import "utils.html" as utils with context %}
 {% extends "base.html" %}
 
-
 {% block content %}
+<div class="container-fluid" style="padding: 1vh 1vw 5vh 5vw; text-align: right">
+    <a class="btn btn-sm btn-primary" href="#can_you_help">Go to Can You Help?</a>
+    <a class="btn btn-sm btn-primary" href="#checked_by_editor">Go to Checked By Editor</a>
+</div>
+
 <div class="container-fluid" style="padding: 1vh 1vw 5vh 5vw; margin-top: 2vh">
 
-    {% for obj in data %}<div class="row">
-        <div class="col-1">{{loop.index}}.</div>
-        <div class="col"><a href="/id/{{obj['ID'][0]}}">{{obj['ID'][0]}}</a></div>
-        <div class="col">
-            {{obj.get('OWNERS_CERLID', ["x| 🤷🏼‍♀️ "])[0]|strip_cerlid}}
-        </div>
-        <div class="col">
-            {% if "CAPTION" in obj %}{{obj["CAPTION"][0]}}{% endif %}
-        </div>
-        <div class="col">
-            {{obj["TYPE_INS"][0]}}
-        </div>
+{% for obj in rest %}
+{{utils.listresults(loop.index, obj)}}    
+{% endfor %}
 
-    </div>{% endfor %}
+<a name="can_you_help"><h2>Can You Help?</h2></a>
+{% for obj in can_you_help %}
+{{utils.listresults(loop.index, obj)}}    
+{% endfor %}
+
+<a  name="checked_by_editor"><h2>Checked by Editor</h2></a>
+{% for obj in checked_by_editor %}
+{{utils.listresults(loop.index, obj)}}    
+{% endfor %}
 
 </div>
 

@@ -88,6 +88,7 @@ class Obj(BaseModel):
     UPLOADER: Optional[List[str]]
     CANYOUHELP: Optional[List[str]]
     TIMESTAMP: Optional[List[str]]
+    CHECKED_BY_EDITOR: Optional[List[str]]
 
 
 @app.exception_handler(StarletteHTTPException)
@@ -226,6 +227,20 @@ async def api_delete(anid: str, user=Depends(authenticated_user)):
         values={"id": anid},
     )
     return {"deleted": anid}
+
+
+@app.post("/api/checked/{anid:str}")
+async def api_checked(anid: str, user=Depends(authenticated_user)):
+    if not user.is_admin:
+        raise HTTPException(405, "You are not an Admin user")
+    obj = await get(anid)
+    is_checked_by_editor = obj.get("CHECKED_BY_EDITOR")
+    if is_checked_by_editor:
+        del obj["CHECKED_BY_EDITOR"]
+    else:
+        obj["CHECKED_BY_EDITOR"] = [user.username]
+
+    return await api_save(anid, Obj(**obj), user)
 
 
 class Comment(BaseModel):
@@ -629,12 +644,27 @@ async def download_dmp():
 async def listview(request: Request, page: int = 0, size: int = 100):
 
     batch = await database.fetch_all("SELECT obj FROM source ORDER BY id")
-    batch = [json.loads(x[0]) for x in batch]
+    can_you_help = []
+    checked_by_editor = []
+    rest = []
+    for x in batch:
+        tmp = json.loads(x[0])
+        if tmp.get("CHECKED_BY_EDITOR"):
+            checked_by_editor.append(tmp)
+        elif tmp.get("CANYOUHELP") and len(tmp.get("CANYOUHELP")) > 0:
+            can_you_help.append(tmp)
+        else:
+            rest.append(tmp)
 
     templates.env.filters["strip_cerlid"] = strip_cerlid
     response = templates.TemplateResponse(
         "list.html",
-        {"request": request, "data": batch},
+        {
+            "request": request,
+            "can_you_help": can_you_help,
+            "checked_by_editor": checked_by_editor,
+            "rest": rest,
+        },
     )
     return response
 

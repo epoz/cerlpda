@@ -10,6 +10,21 @@ clipboard = """<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" fi
 </svg>"""
 
 
+async def checked_by_editor_click(event):
+    h = __new__(Headers)
+    h.append("Content-Type", "application/json")
+    result = await fetch(
+        "/api/checked/" + document.objId,
+        {
+            "method": "POST",
+            "credentials": "same-origin",
+            "headers": h,
+            "body": JSON.stringify({"obj_id": document.objId}),
+        },
+    )
+    response = await result.json()
+
+
 def citable_uri_click(event):
     event.preventDefault()
     navigator.clipboard.writeText("https://pda.cerl.org/id/" + document.objId)
@@ -75,6 +90,10 @@ def init():
     delete_button = document.getElementById("delete")
     if delete_button:
         delete_button.addEventListener("click", on_delete_item)
+
+    document.getElementById("checked_by_editor").addEventListener(
+        "click", checked_by_editor_click
+    )
     document.getElementById("citable_uri").addEventListener("click", citable_uri_click)
     document.getElementById("saveComment").addEventListener("click", save_comment_click)
     for d in document.querySelectorAll(".deleteComment"):

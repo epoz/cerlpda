@@ -1,3 +1,19 @@
+{% macro listresults(loop_index, obj) %}
+    <div class="row">
+        <div class="col-1">{{loop_index}}.</div>
+        <div class="col"><a href="/id/{{obj['ID'][0]}}">{{obj['ID'][0]}}</a></div>
+        <div class="col">
+            {{obj.get('OWNERS_CERLID', ["x| 🤷🏼‍♀️ "])[0]|strip_cerlid}}
+        </div>
+        <div class="col">
+            {% if "CAPTION" in obj %}{{obj["CAPTION"][0]}}{% endif %}
+        </div>
+        <div class="col">
+            {{obj["TYPE_INS"][0]}}
+        </div>
+    </div>
+{%endmacro%}
+
 {%macro searchresults(searchurl) %}
 
 <div class="row justify-content-center" style="border-bottom: 1px solid #ccc">

@@ -63,3 +63,17 @@ As a start, here is a list of the current choices that can be made for the vario
 | Stamp        |     |
 | other        |     |
 | Unidentified |     |
+
+## TODO
+
+- _Data Cleaning_ Due to historical data entry to the CERL PDA, there are fields in the current dataset that do not exactly map to the choices shown above. As part of the RDF dump process, we need to identify these entries and do a reconcilation.
+
+- _Add links_ to item view page that show RDF data (turtle/json-ld)
+
+- Make _data dump_ for entire PDA in .ttl format
+
+- Add a _/sparql_ endpoint
+
+- Make some user-friendly SPARQL data _query examples_
+
+- Investigate _alternative query user interfaces_

@@ -1,4 +1,10 @@
-from fastapi.responses import HTMLResponse, JSONResponse, RedirectResponse, Response
+from fastapi.responses import (
+    HTMLResponse,
+    JSONResponse,
+    RedirectResponse,
+    Response,
+    PlainTextResponse,
+)
 from fastapi.exception_handlers import http_exception_handler
 from starlette.exceptions import HTTPException as StarletteHTTPException
 from fastapi import Depends, FastAPI, Request, HTTPException, File, UploadFile
@@ -16,13 +22,14 @@ from fastapi.templating import Jinja2Templates
 from fastapi.staticfiles import StaticFiles
 from jinja2 import Markup
 from hashlib import md5
-import databases, os, json, random, time
+import databases, os, json, random, time, io
 from urllib.parse import quote_plus
 import httpx, openpyxl
 from markdown import Markdown
 from pydantic import BaseModel
 from typing import List, Optional
 import traceback
+from pyoxigraph import NamedNode, Store, Quad
 from .util import (
     TF,
     load,
@@ -159,6 +166,23 @@ async def edit_item(request: Request, anid: str):
         {"request": request, "anid": anid, "obj": obj},
     )
     return response
+
+
+@app.get("/id/{anid:str}.ttl", include_in_schema=False)
+async def item_ttl(request: Request, anid: str):
+    obj = await get(anid)
+    s = Store()
+    s.add(
+        Quad(
+            NamedNode(f"https://pda.cerl.org/id/{anid}"),
+            NamedNode("http://www.w3.org/1999/02/22-rdf-syntax-ns#type"),
+            NamedNode("http://schema.org/Book"),
+        )
+    )
+    output = io.BytesIO()
+    s.dump(output, "text/turtle")
+    ss = output.getvalue().decode("utf8")
+    return PlainTextResponse(ss, media_type="text/turtle")
 
 
 @app.get("/id/{anid:str}.json", include_in_schema=False)
@@ -473,7 +497,6 @@ async def search(request: Request, q: str = "", size: int = 50, page: int = 0):
 
 @app.get("/canyouhelp", response_class=HTMLResponse, include_in_schema=False)
 async def canyouhelp(request: Request, page: int = 0, size: int = 100):
-
     search_results = await database.fetch_all(
         "SELECT id FROM source WHERE length(canyouhelp) > 0 AND json_extract(obj, '$.OWNERS_CERLID') IS NULL ORDER BY id"
     )
@@ -642,7 +665,6 @@ async def download_dmp():
 
 @app.get("/list", response_class=HTMLResponse, include_in_schema=False)
 async def listview(request: Request, page: int = 0, size: int = 100):
-
     batch = await database.fetch_all("SELECT obj FROM source ORDER BY id")
     can_you_help = []
     checked_by_editor = []
@@ -692,7 +714,6 @@ class Payload(BaseModel):
 
 @app.post("/api/cerlthesaurus")
 def cerlthesaurus(payload: Payload, user=Depends(authenticated_user)):
-
     payload = payload.dict()
     action = payload.get("action", "add_person")
 

@@ -3,6 +3,9 @@
 The CERL Thesaurus [is available as Linked Data](https://www.cerl.org/resources/cerl_thesaurus/linkeddata)
 We would like to also model the PDA as Linked Data, and model it to match and link to the CERL Thesaurus and other Linked Data sources [like the STCN](http://data.bibliotheken.nl/doc/nbt/p192741446) or [The RBMS Controlled Vocabulary for Rare Materials Cataloging](https://id.loc.gov/vocabulary/rbmscv.html)
 
+Another possible link is to the [T-PRO Thesaurus der Provenienzbegriffe
+](https://provenienz.gbv.de/T-PRO_Thesaurus_der_Provenienzbegriffe) - (with thanks to Anna Doenecke for the heads-up)
+
 In time, we would like to offer all the CERL PDA data queryable under a SPARQL endpoint, and downloadable as raw RDF data dumps.
 This page serves as work-in-progress documentation, as we work towards that goal. We welcome all comments and suggestions, please contact us at secretariat@cerl.org or you can contact [the software maintainers](https://epoz.org/).
 

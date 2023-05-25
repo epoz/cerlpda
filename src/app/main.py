@@ -423,11 +423,11 @@ async def fragments_modal_search(
             if "year_start" in row or "year_end" in row:
                 name = name + " ("
             if "year_start" in row:
-                name = name + " " + row["year_start"][0]
+                name = f"{name} {row['year_start'][0]}"
             if "year_end" in row:
                 if "year_start" in row:
                     name = name + " - "
-                name = name + row["year_end"][0]
+                name = f"{name} {row['year_end'][0]}"
             if "year_start" in row or "year_end" in row:
                 name = name + ")"
             row["name"] = name

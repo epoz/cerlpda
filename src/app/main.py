@@ -298,7 +298,7 @@ async def comment(cmnt: Comment, user=Depends(authenticated_user)):
 
         send_email(
             CONTACT_EMAIL,
-            usernames,
+            ", ".join(usernames),
             f"CERL PDA Comment {cmnt.obj_id}",
             msg,
         )

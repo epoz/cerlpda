@@ -282,16 +282,16 @@ async def comment(cmnt: Comment, user=Depends(authenticated_user)):
     try:
         db = sqlite3.connect(ADMIN_DATABASE)
         usernames = [
-            username for username in db.execute("SELECT username FROM admin_users")
+            username[0] for username in db.execute("SELECT username FROM admin_users")
         ]
         obj_owner = [
-            u
+            u[0]
             for u in await database.fetch_all(
                 "select json_extract(obj, '$.UPLOADER[0]') from source WHERE id = :uid",
                 values={"uid": cmnt.obj_id},
             )
         ]
-        usernames.append(obj_owner)
+        usernames.append(obj_owner[0])
 
         # Find the list of admin_users to send the mail to
         msg = f"""A comment was made on the CERL PDA item  https://pda.cerl.org/id/{cmnt.obj_id}"""

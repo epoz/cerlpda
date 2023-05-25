@@ -479,6 +479,7 @@ async def search(request: Request, q: str = "", size: int = 50, page: int = 0):
         pages = 10
 
     templates.env.filters["owner_or_unknown"] = owner_or_unknown
+    templates.env.filters["strip_cerlid"] = strip_cerlid
 
     response = templates.TemplateResponse(
         "search.html",

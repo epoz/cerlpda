@@ -91,9 +91,10 @@ def init():
     if delete_button:
         delete_button.addEventListener("click", on_delete_item)
 
-    document.getElementById("checked_by_editor").addEventListener(
-        "click", checked_by_editor_click
-    )
+    checked_by_editor = document.getElementById("checked_by_editor")
+    if checked_by_editor:
+        checked_by_editor.addEventListener("click", checked_by_editor_click)
+
     document.getElementById("citable_uri").addEventListener("click", citable_uri_click)
     document.getElementById("saveComment").addEventListener("click", save_comment_click)
     for d in document.querySelectorAll(".deleteComment"):

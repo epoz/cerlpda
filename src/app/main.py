@@ -313,9 +313,16 @@ async def comment(cmnt: Comment, user=Depends(authenticated_user)):
 async def delete_comment(
     request: Request, rowid: str, user=Depends(authenticated_user)
 ):
-    r = await database.execute(
-        "DELETE FROM annotation WHERE rowid = :rowid", values={"rowid": rowid}
-    )
+    if user.is_admin:
+        r = await database.execute(
+            "DELETE FROM annotation WHERE rowid = :rowid",
+            values={"rowid": rowid},
+        )
+    else:
+        r = await database.execute(
+            "DELETE FROM annotation WHERE rowid = :rowid AND user = :user",
+            values={"rowid": rowid, "user": user.username},
+        )
     return {"status": "OK"}
 
 

@@ -6,6 +6,7 @@
 {% else %}
     {% if text %}{% if title %}<span class="hed">{{title}}: </span>{% endif %}{{text|cerl_thesaurus}}{% endif %}
 {% endif %}
+{% if text %}{% if field == 'WIDTH' or field == 'HEIGHT' %}cm{% endif %}{% endif %}
 {% endmacro %}
 
 

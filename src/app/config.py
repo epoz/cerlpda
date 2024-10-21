@@ -5,7 +5,7 @@ ORIGINS = os.environ.get(
     "ORIGINS",
     "http://localhost:8080",
 ).split(" ")
-DATABASE_URL = "sqlite:///cerlpda.sqlite"
+DATABASE_URL = os.environ.get("DATABASE_URL", "sqlite:///cerlpda.sqlite")
 ADMIN_DATABASE = os.environ.get("ADMIN_DATABASE", "admin.sqlite")
 SECRET_KEY = os.environ.get("SECRET_KEY", "foobarbaz")
 ACCESS_TOKEN_EXPIRE_DAYS = int(os.environ.get("ACCESS_TOKEN_EXPIRE_DAYS", "30"))

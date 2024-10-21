@@ -1,4 +1,4 @@
-FROM node:16 as stylebuild
+FROM node:16 AS stylebuild
 
 WORKDIR /home
 
@@ -10,7 +10,7 @@ COPY src/style/src ./src
 RUN npm install
 RUN npm run build
 
-FROM python:3.9.7 as transcrypt
+FROM python:3.9.7 AS transcrypt
 
 RUN apt update && apt install -y openjdk-11-jre-headless
 WORKDIR /home
@@ -19,6 +19,7 @@ COPY src/frontend/homepage.py .
 COPY src/frontend/edit_item.py .
 COPY src/frontend/item.py .
 COPY src/frontend/shared.py .
+COPY src/frontend/upload.py .
 
 RUN pip install Transcrypt==3.9.0 htmltree==0.7.6
 

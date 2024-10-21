@@ -25,7 +25,7 @@ RUN pip install Transcrypt==3.9.0 htmltree==0.7.6
 RUN transcrypt -bm homepage.py && mv __target__ homepage
 RUN transcrypt -bm edit_item.py && mv __target__ edit_item
 RUN transcrypt -bm item.py && mv __target__ item
-
+RUN transcrypt -bm upload.py && mv __target__ upload
 
 FROM python:3.9.7
 
@@ -42,6 +42,7 @@ COPY src /home/src
 COPY --from=transcrypt /home/homepage /home/src/static/homepage
 COPY --from=transcrypt /home/edit_item /home/src/static/edit_item
 COPY --from=transcrypt /home/item /home/src/static/item
+COPY --from=transcrypt /home/upload /home/src/static/upload
 
 
 WORKDIR /home/src

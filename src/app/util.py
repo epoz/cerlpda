@@ -3,7 +3,7 @@ from email.message import EmailMessage
 import databases, httpx
 from .config import DATABASE_URL
 from fastapi import HTTPException
-from jinja2 import Markup
+from markupsafe import Markup
 from urllib.parse import quote_plus
 from markdown_it import MarkdownIt
 
@@ -63,8 +63,10 @@ async def get(objid):
         raise HTTPException(status_code=404)
 
     obj = {}
+    incoming = await load(row[0])
+
     # Remove all fields with empty lists or strings
-    for k, v in json.loads(row[0]).items():
+    for k, v in incoming.items():
         tmp = [vv for vv in v if len(str(vv)) > 0]
         if len(tmp) > 0:
             obj[k] = tmp
@@ -79,8 +81,16 @@ async def get(objid):
     return obj
 
 
-def load(obj_string):
+async def load(obj_string):
     obj = json.loads(obj_string)
+    # if this is a provenance object, also fetch its details?
+    exemplar = obj.get("EXEMPLAR", [None])[0]
+    if exemplar:
+        exemplar = await get(exemplar)
+        for k, v in exemplar.items():
+            if k not in obj:
+                obj[k] = v
+
     return obj
     # Some fields, have IDs in them, filter them.
     # for k, v in obj.copy().items():
@@ -139,7 +149,7 @@ def ic(values):
     if r.status_code == 200:
         data = r.json()
         return data.get("result", [])
-    return {}
+    return []
 
 
 def markdown(value):

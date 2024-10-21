@@ -1,0 +1,33 @@
+{% extends "base.html" %}
+
+{% block title %}CERL PDA · Overview{% endblock title %}
+
+{% block head_last%}
+<script src="/static/openseadragon-2.4.2/openseadragon.min.js"></script>
+{% endblock %}
+
+{% block content %}
+<div style="flex"">
+    <div id="osd" style="width: 80vw; height: 100vh">
+    </div>
+    <div id="links">
+    </div>
+</div>
+
+<script>
+window.onload = function () {
+  osd = OpenSeadragon({
+    id: "osd",
+    prefixUrl: "https://epoz.org/openseadragon/images/",
+    maxZoomPixelRatio: 6,
+    tileSources: [
+      {
+        tileSource:
+          "https://pda.cerl.org/iiif/2/cerldpda_20250501.tiff/info.json",
+        width: 10000,
+      },
+    ],
+  });
+};
+</script>    
+{% endblock %}

@@ -1,0 +1,43 @@
+{% extends "base.html" %}
+
+
+{% block head_last%}
+<script src="/static/openseadragon-2.4.2/openseadragon.min.js"></script>
+<script type="module">import * as upload from '/static/upload/upload.js';</script>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid" style="padding: 1vh 1vw 5vh 5vw;">
+    <div class="row" style="margin-bottom: 1vh; border-bottom: 2px solid #ddd; padding-bottom: 1vh">
+        <div class="col">            
+            <h1>Image Upload</h1>
+        </div>
+    </div>
+
+    <div class="row mt-4">
+
+        <div class="col">
+            
+            <div class="input-group mb-2 mr-sm-2">
+                <div class="input-group-prepend">
+                    <div class="input-group-text">Upload Image(s)</div>
+                </div>
+                <input type="file"  class="form-control" id="filechooser"/>
+                <div style="font-style: italic; padding-left: 4ch">Only JPEG files are allowed.</div>
+            </div>
+
+            <div id="fileupload_spinner" class="spinner-border ms-auto" role="status" aria-hidden="true" style="display: none"></div>
+            <div id="image_thumbnails" style="margin: 2vh 0 2vh 0">To start, we will see if there are similar files to the one you are uploading.</div>
+
+
+
+        </div>
+    </div>
+
+
+
+
+</div>
+
+
+{% endblock %}

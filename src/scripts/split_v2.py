@@ -7,8 +7,6 @@ DB.executescript(
     ALTER TABLE source ADD COLUMN tipe as (json_extract(obj, '$.TIPE[0]'))"""
 )
 
-DB.execute("ALTER TABLE source ADD COLUMN TIPE TEXT")
-
 data = {}
 for id, obj in DB.execute("select id, obj from source"):
     data[id] = json.loads(obj)

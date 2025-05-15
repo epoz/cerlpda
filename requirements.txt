@@ -25,5 +25,3 @@ SQLAlchemy==2.0.36
 markdown-it-py==2.1.0
 pyoxigraph==0.3.8
 numpy==1.22.4
-torch==2.5.0
-clip-anytorch==2.5.2

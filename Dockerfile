@@ -37,6 +37,9 @@ COPY --from=stylebuild /home/static /home/src/static
 RUN pip install --upgrade pip
 COPY requirements.txt .
 RUN pip install -r requirements.txt
+COPY requirements_nonvidia.txt .
+RUN pip install --no-cache-dir -r requirements_nonvidia.txt
+
 
 COPY src /home/src
 

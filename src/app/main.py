@@ -42,6 +42,7 @@ from .util import (
     ic,
     markdown,
     owner_or_unknown,
+    similar_to_image,
 )
 import clip, torch
 from PIL import Image
@@ -92,41 +93,41 @@ from .metabotnik import *
 
 class Obj(BaseModel):
     ID: List[str]
-    TYPE_INS: Optional[List[str]]
-    INSTIT: Optional[List[str]]
-    URL_IMAGE: Optional[List[str]]
-    COMMENT: Optional[List[str]]
-    TITLE: Optional[List[str]]
-    TEXT: Optional[List[str]]
-    IC: Optional[List[str]]
-    WIDTH: Optional[List[str]]
-    LANG: Optional[List[str]]
-    DATE_ORIG_CENTURY: Optional[List[str]]
-    TECHNIQUE: Optional[List[str]]
-    DATE_ORIG: Optional[List[str]]
-    LOCATION_ORIG: Optional[List[str]]
-    HEIGHT: Optional[List[str]]
-    URL_WEBPAGE: Optional[List[str]]
-    PAGE: Optional[List[str]]
-    OWNERS_CERLID: Optional[List[str]]
-    LOCATION_ORIG_CERLID: Optional[List[str]]
-    INSTIT_CERLID: Optional[List[str]]
-    IMPRINT: Optional[List[str]]
-    PERSON_AUTHOR: Optional[List[str]]
-    SHELFMARK: Optional[List[str]]
-    USAGE: Optional[List[str]]
-    CAPTION: Optional[List[str]]
-    LOCATION_INV: Optional[List[str]]
-    IMPRESSUM: Optional[List[str]]
-    PERSON_CONTRIBUTOR: Optional[List[str]]
-    URL_SEEALSO: Optional[List[str]]
-    UPLOADER: Optional[List[str]]
-    CANYOUHELP: Optional[List[str]]
-    TIMESTAMP: Optional[List[str]]
-    CHECKED_BY_EDITOR: Optional[List[str]]
-    EXEMPLAR: Optional[List[str]]
-    INSTANCES: Optional[List[str]]
-    PROVENANCE: Optional[List[str]]
+    TYPE_INS: Optional[List[str]] = None
+    INSTIT: Optional[List[str]] = None
+    URL_IMAGE: Optional[List[str]] = None
+    COMMENT: Optional[List[str]] = None
+    TITLE: Optional[List[str]] = None
+    TEXT: Optional[List[str]] = None
+    IC: Optional[List[str]] = None
+    WIDTH: Optional[List[str]] = None
+    LANG: Optional[List[str]] = None
+    DATE_ORIG_CENTURY: Optional[List[str]] = None
+    TECHNIQUE: Optional[List[str]] = None
+    DATE_ORIG: Optional[List[str]] = None
+    LOCATION_ORIG: Optional[List[str]] = None
+    HEIGHT: Optional[List[str]] = None
+    URL_WEBPAGE: Optional[List[str]] = None
+    PAGE: Optional[List[str]] = None
+    OWNERS_CERLID: Optional[List[str]] = None
+    LOCATION_ORIG_CERLID: Optional[List[str]] = None
+    INSTIT_CERLID: Optional[List[str]] = None
+    IMPRINT: Optional[List[str]] = None
+    PERSON_AUTHOR: Optional[List[str]] = None
+    SHELFMARK: Optional[List[str]] = None
+    USAGE: Optional[List[str]] = None
+    CAPTION: Optional[List[str]] = None
+    LOCATION_INV: Optional[List[str]] = None
+    IMPRESSUM: Optional[List[str]] = None
+    PERSON_CONTRIBUTOR: Optional[List[str]] = None
+    URL_SEEALSO: Optional[List[str]] = None
+    UPLOADER: Optional[List[str]] = None
+    CANYOUHELP: Optional[List[str]] = None
+    TIMESTAMP: Optional[List[str]] = None
+    CHECKED_BY_EDITOR: Optional[List[str]] = None
+    EXEMPLAR: Optional[List[str]] = None
+    INSTANCES: Optional[List[str]] = None
+    PROVENANCE: Optional[List[str]] = None
 
 
 @app.exception_handler(StarletteHTTPException)
@@ -139,7 +140,9 @@ async def custom_http_exception_handler(request, exc):
 @app.get("/", response_class=HTMLResponse, include_in_schema=False)
 async def homepage(request: Request):
     # Count the number of items in the database and display a total as welcome message
-    row = await database.fetch_one("SELECT count(id) FROM source")
+    row = await database.fetch_one(
+        "SELECT count(id) FROM source WHERE tipe = 'provenance'"
+    )
     total = row[0]
 
     response = templates.TemplateResponse(
@@ -249,6 +252,25 @@ async def item_id(request: Request, anid: str):
     return render_obj_with(request, obj, "item.html")
 
 
+@app.get("/id/{anid:str}/similar/{animage:str}", include_in_schema=False)
+async def item_id_similar(request: Request, anid: str, animage: str):
+    templates.env.filters["cerl_thesaurus"] = cerl_thesaurus
+    templates.env.filters["cerl_holdinst"] = cerl_holdinst
+    templates.env.filters["to_paras"] = to_paras
+    templates.env.filters["ic"] = ic
+    templates.env.filters["markdown"] = markdown
+
+    obj = await get(anid)
+
+    matched_objs_batch = await similar_to_image(animage)
+
+    response = templates.TemplateResponse(
+        "item_similar.html",
+        {"request": request, "obj": obj, "TF": TF(obj), "similar": matched_objs_batch},
+    )
+    return response
+
+
 @app.put("/id/{anid:str}")
 async def api_save(anid: str, obj: Obj, user=Depends(authenticated_user)):
     new_obj = {}
@@ -325,6 +347,21 @@ async def api_delete(anid: str, user=Depends(authenticated_user)):
         values={"id": anid},
     )
     return {"deleted": anid}
+
+
+@app.post("/api/combine")
+async def api_combine(anid: str, instance: str, user=Depends(authenticated_user)):
+    if not user.is_admin:
+        raise HTTPException(405, "You are not an Admin user")
+    obj = await get(anid)
+    instances = obj.get("INSTANCES", [])
+    if instance not in instances:
+        instances.append(instance)
+    obj["INSTANCES"] = instances
+
+    o = Obj(**obj)
+
+    return await api_save(anid, o, user)
 
 
 @app.post("/api/checked/{anid:str}")
@@ -650,27 +687,8 @@ def cosine_distance(a, b):
     "/fragments/similar/{img:str}", response_class=HTMLResponse, include_in_schema=False
 )
 async def fragments_similar(request: Request, img: str):
-    query = "SELECT filename, vecbuf FROM embeddings"
-    embeddings_query = await database.fetch_all(query)
-    embeddings = {}
-    for uid, vecbuf in embeddings_query:
-        vec = pickle.loads(vecbuf)
-        if uid.startswith(img):
-            toget = vec
-        embeddings[uid] = vec
 
-    closest_match = list(
-        sorted(embeddings.items(), key=lambda x: cosine_distance(toget, x[1]))
-    )
-
-    matched_images = ",".join([f"'{x[0]}'" for x in closest_match[:10]])
-    query = f"SELECT source.id, json_each.value FROM source, json_each(source.obj, '$.URL_IMAGE') WHERE json_each.value in ({matched_images})"
-    matched_objs = {}
-    for x in await database.fetch_all(query):
-        matched_objs[x[1]] = await get(x[0])
-    matched_objs_batch = [
-        matched_objs[mi[0]] for mi in closest_match[:10] if mi[0] in matched_objs
-    ]  # do this convoluted way to preserve the matched order, upgrade to Voyager or other ANN needed later
+    matched_objs_batch = await similar_to_image(img)
 
     batch = {
         "total": len(matched_objs_batch),

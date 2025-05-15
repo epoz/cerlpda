@@ -4,7 +4,9 @@ from rich import print
 DB = sqlite3.connect(sys.argv[1])
 DB.executescript(
     """CREATE TABLE IF NOT EXISTS embeddings (filename TEXT PRIMARY KEY, vecbuf BLOB);
-    ALTER TABLE source ADD COLUMN tipe as (json_extract(obj, '$.TIPE[0]'))"""
+    ALTER TABLE source ADD COLUMN tipe as (json_extract(obj, '$.TIPE[0]'));
+    ALTER TABLE source ADD COLUMN exemplar as (json_extract(obj, '$.EXEMPLAR[0]'));
+"""
 )
 
 data = {}

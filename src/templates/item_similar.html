@@ -1,0 +1,108 @@
+{% extends "base.html" %}
+
+{% macro snip(field, title, text) %}
+{% if field == 'INSTIT_CERLID' %}
+    {% if text %}{% if title %}<span class="hed">{{title}}: </span>{% endif %}{{text|cerl_holdinst}}{% endif %}
+{% else %}
+    {% if text %}{% if title %}<span class="hed">{{title}}: </span>{% endif %}{{text|cerl_thesaurus}}{% endif %}
+{% endif %}
+{% if text %}{% if field == 'WIDTH' or field == 'HEIGHT' %}cm{% endif %}{% endif %}
+{% endmacro %}
+
+{% block title %}CERL PDA · {{obj["ID"][0]}}{% endblock title %}
+
+
+{% block content %}
+<div class="container-fluid" style="padding: 1vh 1vw 5vh 5vw;">
+    <div class="row" style="padding: 0 2vw 0 2vw">
+        <div class="col">
+            <a class="btn btn-sm btn-info" href="/id/{{obj['ID'][0]}}">View</a>
+        </div>
+    </div>
+    <div class="row" style="padding: 1vw 2vw 0 2vw">
+        <div style="font-size: 150%">{{obj.get("CAPTION", [""])[0]}}</div>
+        <div>{{snip(*TF("TEXT"))}}</div> 
+    
+    </div>
+
+    <div class="row" style="padding: 1vw 2vw 0 2vw">
+        <h3>Instances</h3>
+        {% for instance in obj.get("_instances", []) %}
+            
+            <div class="col-sm-6 col-lg-3 mb-4 grid-item" anid="{{obj.get('ID')[0]}}">
+                <div class="card">
+                <a target="cerlpda_item" href="/id/{{instance.get('ID')[0]}}">
+                    {% for img in instance.get('URL_IMAGE') %}
+                        <img src="/iiif/2/{{img}}/full/300,/0/default.jpg">
+                    {% endfor %}
+                </a>
+                <div class="card-body">
+                    <p><a target="_new" href="{{instance.get('URL_WEBPAGE', ['#'])[0]}}">{{instance.get('TITLE', ["no title"])[0]}}</a> </p>
+                </div>
+                </div>
+            </div>
+            
+        {% endfor %}
+    </div>
+
+
+
+    <div class="row" style="padding: 1vw 2vw 0 2vw">
+        <h3>Similar Items</h3>
+        {% for similar_obj in similar %}
+             {% if similar_obj.get('ID')[0] not in obj.get('INSTANCES', []) %}
+            
+            <div class="col-sm-6 col-lg-3 mb-4 grid-item" anid="{{obj.get('ID')[0]}}">
+                <div class="card">
+                <a target="cerlpda_item" href="/id/{{similar_obj.get('ID')[0]}}">
+                    {% for img in similar_obj.get('URL_IMAGE') %}
+                        <img src="/iiif/2/{{img}}/full/300,/0/default.jpg">
+                    {% endfor %}
+                </a>
+                <div class="card-body">
+                    <a class="btn btn-sm btn-warning combine" href="#" data-combine="{{similar_obj['ID'][0]}}">Combine</a>
+                    <p><a target="_new" href="{{similar_obj.get('URL_WEBPAGE', ['#'])[0]}}">{{similar_obj.get('TITLE', ["no title"])[0]}}</a> </p>
+                </div>
+                </div>
+            </div>
+            {% endif %}
+        {% endfor %}
+    </div>
+</div>
+
+<script>
+    document.addEventListener('DOMContentLoaded', function () {
+        const combineButtons = document.querySelectorAll('a.combine');
+        combineButtons.forEach(button => {
+            button.addEventListener('click', function (event) {
+                event.preventDefault();
+                const combineId = this.getAttribute('data-combine');
+                console.log('Combine clicked for ID:', combineId);
+                
+                fetch(`/api/combine?anid={{obj.get("ID")[0]}}&instance=${combineId}`, {
+                    method: 'POST',
+                    credentials: "same-origin",
+                    headers: {
+                        'Content-Type': 'application/x-www-form-urlencoded',
+                    }
+                })
+                .then(response => {
+                    if (!response.ok) {
+                        throw new Error('Network response was not ok');
+                    }
+                    return response.json();
+                })
+                .then(data => {
+                    console.log('Success:', data);
+                    alert('Items combined successfully!');
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                    alert('An error occurred while combining items.');
+                });
+
+            });
+        });
+    });
+</script>
+{% endblock content %}

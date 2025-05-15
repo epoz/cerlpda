@@ -1,5 +1,6 @@
 {% extends "base.html" %}
 
+
 {% macro snip(field, title, text) %}
 {% if field == 'INSTIT_CERLID' %}
     {% if text %}{% if title %}<span class="hed">{{title}}: </span>{% endif %}{{text|cerl_holdinst}}{% endif %}
@@ -25,11 +26,6 @@
 <script src="/static/openseadragon-2.4.2/openseadragon.min.js"></script>
 <script>document.objId = '{{obj['ID'][0]}}'</script>
 <script type="module">import * as item from '/static/item/item.js';</script>
-<style>
-.hed {font-variant: small-caps; color: #888; margin-right: 0.5ch}
-.notespara {margin: 0}
-</style>
-
 {% endblock %}
 
 {% block content %}
@@ -125,7 +121,14 @@
         <div style="margin-bottom: 3vh">{{obj["NOTES"][0]|to_paras}}</div>
         {% endif %}
 
+        <div class="mb-2">        
+        {% for animage in obj.get('URL_IMAGE', []) %}    
+            <a title="Image: {{animage}}" data-image="{{animage}}" href="/id/{{obj['ID'][0]}}/similar/{{animage}}" class="show_similar btn btn-sm btn-secondary">{% if loop.index > 1 %}Image {{loop.index}}{% else %}Find Similar Items{% endif %}</a>
+        {% endfor %}
+        </div>
 
+        <div id="image_thumbnails"></div>
+        
         <div id="thedzi1" style="height: 60vh; width: 100%; margin: 0 auto; border-top: 4px solid #ddd;"></div>
 
         {% if "TIMESTAMP" in obj %}
@@ -159,6 +162,32 @@
         </div>
         {% endif %}
     </div>
+
+    {% if obj.get("_instances", [])|length > 1 %}
+    <div class="row" style="padding: 1vw 2vw 0 2vw">
+        <h3>Other Instances</h3>
+        {% for instance in obj.get("_instances", []) %}
+            {% if instance.get('ID')[0] != obj.get('EXEMPLAR')[0] %}
+            <div class="col-sm-6 col-lg-3 mb-4 grid-item" anid="{{obj.get('ID')[0]}}">
+                <div class="card">
+                <a target="cerlpda_item" href="/id/{{instance.get('ID')[0]}}">
+                    {% for img in instance.get('URL_IMAGE') %}
+                        <img src="/iiif/2/{{img}}/full/300,/0/default.jpg">
+                    {% endfor %}
+                </a>
+                <div class="card-body">
+                    <a class="btn btn-sm btn-warning exemplar" href="#" data-combine="{{instance['ID'][0]}}">Make Exemplar</a>
+                    <p><a target="_new" href="{{instance.get('URL_WEBPAGE', ['#'])[0]}}">{{instance.get('TITLE', ["no title"])[0]}}</a> </p>
+                    
+
+                </div>
+                </div>
+            </div>
+            {% endif %}
+        {% endfor %}
+    </div>
+    {% endif %}
+
 
 </div>
 

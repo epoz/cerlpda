@@ -121,7 +121,9 @@
         <div style="margin-bottom: 3vh">{{obj["NOTES"][0]|to_paras}}</div>
         {% endif %}
 
-        <div class="mb-2">        
+        <div class="mb-2">
+        <a id="add_zoom" href="#" class="btn btn-sm btn-secondary">Add Zoom</a>
+        <a id="save_zoom" href="#" class="btn btn-sm btn-secondary" style="display: none">Save Zoom</a>        
         {% for animage in obj.get('URL_IMAGE', []) %}    
             <a title="Image: {{animage}}" data-image="{{animage}}" href="/id/{{obj['ID'][0]}}/similar/{{animage}}" class="show_similar btn btn-sm btn-secondary">{% if loop.index > 1 %}Image {{loop.index}}{% else %}Find Similar Items{% endif %}</a>
         {% endfor %}
@@ -223,6 +225,30 @@ async function doInits() {
             tileSource: '/iiif/2/{{animage}}/info.json'} {% if not loop.last %},{% endif %}
         {% endfor %}],
     });
+    document.OSDSettings = {}
+
+    viewer.addHandler('zoom', function(event) {        
+        document.OSDSettings.center = {x: viewer.viewport.getCenter().x, y: viewer.viewport.getCenter().y};        
+        document.OSDSettings.zoom = viewer.viewport.getZoom();
+        document.getElementById('save_zoom').style.display = 'inline';
+    });
+
+    viewer.addHandler('pan', function(event) {
+        document.OSDSettings.center = {x: viewer.viewport.getCenter().x, y: viewer.viewport.getCenter().y};        
+        document.OSDSettings.zoom = viewer.viewport.getZoom();
+        document.getElementById('save_zoom').style.display = 'inline';
+    });
+
+    setTimeout(function() {
+        document.getElementById('save_zoom').style.display = 'none';
+    }, 500);
+    
+    document.getElementById('add_zoom').addEventListener('click', function() {
+        document.getElementById('add_zoom').style.display = 'none';
+        
+    });
+
+
 }
 
 doInits()

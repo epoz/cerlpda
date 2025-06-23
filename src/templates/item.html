@@ -15,6 +15,16 @@
 {% block title %}CERL PDA · {{obj["ID"][0]}}{% endblock title %}
 
 {% block head_last%}
+<style>
+.annotation-rect {
+    border: 2px solid red;
+    background-color: rgba(255, 0, 0, 0.1);
+    box-sizing: border-box;
+    pointer-events: none;
+}
+</style>
+
+
 <meta property="og:title" content="CERL PDA · {{obj['ID'][0]}}" />
 {% if obj.get('URL_IMAGE') %}
 <meta property="og:image" content="https://pda.cerl.org/iiif/2/{{obj['URL_IMAGE'][0]}}/full/300,/0/default.jpg" />
@@ -26,6 +36,10 @@
 <script src="/static/openseadragon-2.4.2/openseadragon.min.js"></script>
 <script>document.objId = '{{obj['ID'][0]}}'</script>
 <script type="module">import * as item from '/static/item/item.js';</script>
+
+
+
+
 {% endblock %}
 
 {% block content %}
@@ -122,8 +136,12 @@
         {% endif %}
 
         <div class="mb-2">
+        {% if request.user.is_admin  or (obj["UPLOADER"] and obj["UPLOADER"][0][0] == request.user.username )%}
         <a id="add_zoom" href="#" class="btn btn-sm btn-secondary">Add Zoom</a>
-        <a id="save_zoom" href="#" class="btn btn-sm btn-secondary" style="display: none">Save Zoom</a>        
+        <a id="save_zoom" href="#" class="btn btn-sm btn-secondary" style="display: none">Save Zoomed Area</a>        
+        {% endif %}
+
+
         {% for animage in obj.get('URL_IMAGE', []) %}    
             <a title="Image: {{animage}}" data-image="{{animage}}" href="/id/{{obj['ID'][0]}}/similar/{{animage}}" class="show_similar btn btn-sm btn-secondary">{% if loop.index > 1 %}Image {{loop.index}}{% else %}Find Similar Items{% endif %}</a>
         {% endfor %}
@@ -212,6 +230,12 @@
 </div>
 
 <script type="text/javascript">
+let annotationMode = false;
+let isDrawing = false;
+let startPoint = null;
+let currentRect = null;
+
+
 async function doInits() {
     var viewer = OpenSeadragon({
         id: "thedzi1",
@@ -227,26 +251,101 @@ async function doInits() {
     });
     document.OSDSettings = {}
 
-    viewer.addHandler('zoom', function(event) {        
-        document.OSDSettings.center = {x: viewer.viewport.getCenter().x, y: viewer.viewport.getCenter().y};        
-        document.OSDSettings.zoom = viewer.viewport.getZoom();
-        document.getElementById('save_zoom').style.display = 'inline';
-    });
+    viewer.addHandler("canvas-press", function (event) {
+        if (!annotationMode) return;
 
-    viewer.addHandler('pan', function(event) {
-        document.OSDSettings.center = {x: viewer.viewport.getCenter().x, y: viewer.viewport.getCenter().y};        
-        document.OSDSettings.zoom = viewer.viewport.getZoom();
-        document.getElementById('save_zoom').style.display = 'inline';
-    });
-
-    setTimeout(function() {
-        document.getElementById('save_zoom').style.display = 'none';
-    }, 500);
     
-    document.getElementById('add_zoom').addEventListener('click', function() {
-        document.getElementById('add_zoom').style.display = 'none';
-        
+        viewer.clearOverlays();
+
+        isDrawing = true;
+        startPoint = viewer.viewport.pointFromPixel(event.position);
+        event.preventDefaultAction = true;
     });
+
+    viewer.addHandler("canvas-drag", function (event) {
+        if (!annotationMode || !isDrawing) return;
+
+        event.preventDefaultAction = true;
+
+        const currentPoint = viewer.viewport.pointFromPixel(event.position);
+
+        const rect = {
+        x: Math.min(startPoint.x, currentPoint.x),
+        y: Math.min(startPoint.y, currentPoint.y),
+        width: Math.abs(currentPoint.x - startPoint.x),
+        height: Math.abs(currentPoint.y - startPoint.y),
+        };
+
+        if (currentRect) {
+        viewer.removeOverlay(currentRect);
+        }
+
+        const rectElement = document.createElement("div");
+        rectElement.className = "annotation-rect";
+
+        viewer.addOverlay({
+        element: rectElement,
+        location: new OpenSeadragon.Rect(rect.x, rect.y, rect.width, rect.height),
+        });
+
+        currentRect = rectElement;
+    });
+
+    viewer.addHandler("canvas-release", function (event) {
+        if (!annotationMode || !isDrawing) return;
+
+        event.preventDefaultAction = true;
+        isDrawing = false;
+
+        if (currentRect && startPoint) {
+        const endPoint = viewer.viewport.pointFromPixel(event.position);
+
+        const rect = {
+            x: Math.min(startPoint.x, endPoint.x),
+            y: Math.min(startPoint.y, endPoint.y),
+            width: Math.abs(endPoint.x - startPoint.x),
+            height: Math.abs(endPoint.y - startPoint.y),
+        };
+
+        console.log("Rectangle bounds:", rect);
+        if (rect.width > 0.001 && rect.height > 0.001) {
+            const annotation = {
+            id: Date.now(),
+            element: currentRect,
+            bounds: rect,
+            };
+            document.zoomed_annotation = annotation;
+            zoomToAnnotation(rect)
+            console.log("Annotation created:", annotation.bounds);
+        } else {
+            viewer.removeOverlay(currentRect);
+        }
+        }
+
+        currentRect = null;
+        startPoint = null;
+    });
+
+
+    
+    document.getElementById('add_zoom').addEventListener('click', function(event) {
+        event.preventDefault();
+        document.getElementById('add_zoom').style.display = 'none';
+        document.getElementById('save_zoom').style.display = 'inline-block';
+        annotationMode = true;
+        viewer.element.style.cursor = "crosshair"
+    });
+
+function zoomToAnnotation(bounds) {
+    const padding = 0.05;
+    const paddedBounds = new OpenSeadragon.Rect(
+        bounds.x - (bounds.width * padding),
+        bounds.y - (bounds.height * padding),
+        bounds.width * (1 + 2 * padding),
+        bounds.height * (1 + 2 * padding)
+    );    
+    viewer.viewport.fitBounds(paddedBounds, true);
+}
 
 
 }

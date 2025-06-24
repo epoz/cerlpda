@@ -73,11 +73,20 @@ async def get(objid):
             obj[k] = tmp
 
     # fetch any annotations
-    for rowid, user, value, timestamp in await database.fetch_all(
-        "SELECT rowid, user, value, timestamp FROM annotation WHERE uid = :uid",
+    for row in await database.fetch_all(
+        "SELECT rowid, user, value, timestamp FROM annotation WHERE field = 'COMMENT'  AND uid = :uid",
         values={"uid": objid},
     ):
-        obj.setdefault("ANNOT", []).append((rowid, user, value, timestamp))
+        obj.setdefault("ANNOT", []).append(
+            (row["rowid"], row["user"], row["value"], row["timestamp"])
+        )
+
+    for row in await database.fetch_all(
+        "SELECT rowid, user, value, timestamp FROM annotation WHERE field = 'ZOOM'  AND uid = :uid ORDER BY rowid DESC",
+        values={"uid": objid},
+    ):
+        obj.setdefault("_ZOOM", []).append((row["value"], json.loads(row["value"])))
+        break  # only the latest zoom is needed
 
     # Fetch the instances
     if len(obj.get("INSTANCES", [])) > 0:

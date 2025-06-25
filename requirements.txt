@@ -1,5 +1,5 @@
 rich==12.4.1
-fastapi==0.65.2
+fastapi==0.115.5
 aiofiles==0.4.0
 Jinja2==2.11.3
 markupsafe==2.0.1

@@ -18,7 +18,6 @@
 <style>
 .annotation-rect {
     border: 2px solid red;
-    background-color: rgba(255, 0, 0, 0.1);
     box-sizing: border-box;
     pointer-events: none;
 }
@@ -34,7 +33,12 @@
 
 
 <script src="/static/openseadragon-2.4.2/openseadragon.min.js"></script>
-<script>document.objId = '{{obj['ID'][0]}}'</script>
+<script>
+document.objId = '{{obj['ID'][0]}}'
+{% if obj.get('EXEMPLAR') %}
+document.exemplar = '{{obj['EXEMPLAR'][0]}}'
+{% endif %}
+</script>
 <script type="module">import * as item from '/static/item/item.js';</script>
 
 
@@ -196,9 +200,10 @@
                     {% endfor %}
                 </a>
                 <div class="card-body">
-                    <a class="btn btn-sm btn-warning exemplar" href="#" data-combine="{{instance['ID'][0]}}">Make Main Instance</a>
+                    {% if request.user.is_admin  or (obj["UPLOADER"] and obj["UPLOADER"][0][0] == request.user.username )%}
+                    <a class="btn btn-sm btn-warning exemplar" href="#" data-combine="{{instance['ID'][0]}}">Make Main Instance</a>{% endif %}
                     <p><a target="_new" href="{{instance.get('URL_WEBPAGE', ['#'])[0]}}">{{instance.get('TITLE', ["no title"])[0]}}</a> </p>
-                    
+                    <p>{{instance.get("INSTIT", [""])[0]}} {{instance.get("SHELFMARK", [""])[0]}}</p>
 
                 </div>
                 </div>
@@ -249,7 +254,47 @@ async function doInits() {
             tileSource: '/iiif/2/{{animage}}/info.json'} {% if not loop.last %},{% endif %}
         {% endfor %}],
     });
-    document.OSDSettings = {}
+
+    {% if "_ZOOM" in obj %}
+    
+    const zoomData = {{obj['_ZOOM'][0][0]|safe}};
+    
+    const x = zoomData.x;
+    const y = zoomData.y;
+    const w = zoomData.w;
+    const h = zoomData.h;
+        
+
+    {% if obj['EXEMPLAR'][0] == obj['_ZOOM'][0][1]['obj_id']%}
+    
+    // Wait for the viewer to be ready
+    viewer.addHandler('open', function() {
+
+        const currentItem = viewer.world.getItemAt(0);
+        const itemBounds = currentItem.getBounds();
+        
+        // Convert relative coordinates back to viewport coordinates
+        const overlayBounds = new OpenSeadragon.Rect(
+            itemBounds.x + (x * itemBounds.width),
+            itemBounds.y + (y * itemBounds.height),
+            w * itemBounds.width,
+            h * itemBounds.height
+        );
+        
+        // Create overlay element
+        const rectElement = document.createElement("div");
+        rectElement.className = "annotation-rect";
+        
+        // Add overlay to viewer
+        viewer.addOverlay({
+            element: rectElement,
+            location: overlayBounds
+        });
+        zoomToAnnotation(overlayBounds)
+    });
+    {% endif %}
+
+    {% endif %}
 
     viewer.addHandler("canvas-press", function (event) {
         if (!annotationMode) return;
@@ -307,7 +352,6 @@ async function doInits() {
             height: Math.abs(endPoint.y - startPoint.y),
         };
 
-        console.log("Rectangle bounds:", rect);
         if (rect.width > 0.001 && rect.height > 0.001) {
             const annotation = {
             id: Date.now(),
@@ -336,21 +380,81 @@ async function doInits() {
         viewer.element.style.cursor = "crosshair"
     });
 
-function zoomToAnnotation(bounds) {
-    const padding = 0.05;
-    const paddedBounds = new OpenSeadragon.Rect(
-        bounds.x - (bounds.width * padding),
-        bounds.y - (bounds.height * padding),
-        bounds.width * (1 + 2 * padding),
-        bounds.height * (1 + 2 * padding)
-    );    
-    viewer.viewport.fitBounds(paddedBounds, true);
-}
+    function zoomToAnnotation(bounds) {
+        const padding = 0.05;
+        const paddedBounds = new OpenSeadragon.Rect(
+            bounds.x - (bounds.width * padding),
+            bounds.y - (bounds.height * padding),
+            bounds.width * (1 + 2 * padding),
+            bounds.height * (1 + 2 * padding)
+        );    
+        viewer.viewport.fitBounds(paddedBounds, true);
+    }
+
+    document.getElementById('save_zoom').addEventListener('click', function(event) {
+        event.preventDefault();
+        document.getElementById("save_zoom").style.display = "none"
+        document.getElementById('add_zoom').style.display = 'inline-block';
+        annot = {obj_id: document.exemplar}
+
+        const currentItem = viewer.world.getItemAt(0);
+        const itemBounds = currentItem.getBounds();
+        const itemWidth = itemBounds.width;
+        const itemHeight = itemBounds.height;
+
+        annot.itemWidth = itemWidth;
+        annot.itemHeight = itemHeight;
+        annot.itemX = itemBounds.x;
+        annot.itemY = itemBounds.y;
+        annot.x = (document.zoomed_annotation.bounds.x - itemBounds.x) / itemWidth;
+        annot.y = (document.zoomed_annotation.bounds.y - itemBounds.y) / itemHeight;
+        annot.w = document.zoomed_annotation.bounds.width / itemWidth;
+        annot.h = document.zoomed_annotation.bounds.height / itemHeight;
+
+
+        fetch("/api/save_zoom", 
+        {
+            method: "POST"
+            , credentials: "same-origin"
+            , headers: {"Content-Type": "application/json"}
+            , body: JSON.stringify(annot)
+        })
+        .then(response => response.json())
+        .then(data => {
+            viewer.clearOverlays();
+            document.location.reload()        
+        })     
+        
+
+    })
+
+    document.querySelectorAll('a.exemplar').forEach(function(element) {
+        element.addEventListener('click', function(event) {
+            event.preventDefault();
+            const exemplarId = this.getAttribute('data-combine');
+            
+            fetch("/api/make_exemplar", {
+                method: "POST",
+                credentials: "same-origin",
+                headers: {"Content-Type": "application/json"},
+                body: JSON.stringify(
+                    {obj_id: document.objId, exemplar:exemplarId}
+                )
+            })
+            .then(response => response.json())
+            .then(data => {
+                document.location.reload();
+            });
+
+
+        });
+    });
+    
 
 
 }
 
-doInits()
+document.addEventListener('DOMContentLoaded', doInits)
 
 </script>
 {% endblock %}

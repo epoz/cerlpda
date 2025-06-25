@@ -81,17 +81,18 @@ async def get(objid):
             (row["rowid"], row["user"], row["value"], row["timestamp"])
         )
 
-    for row in await database.fetch_all(
-        "SELECT rowid, user, value, timestamp FROM annotation WHERE field = 'ZOOM'  AND uid = :uid ORDER BY rowid DESC",
-        values={"uid": objid},
-    ):
-        obj.setdefault("_ZOOM", []).append((row["value"], json.loads(row["value"])))
-        break  # only the latest zoom is needed
+    # we fetch the ZOOM comments for the exemplar, not the object
+    exemplar = obj.get("EXEMPLAR", [None])[0]
+    if exemplar:
+        for row in await database.fetch_all(
+            "SELECT rowid, user, value, timestamp FROM annotation WHERE field = 'ZOOM'  AND uid = :uid ORDER BY rowid DESC",
+            values={"uid": exemplar},
+        ):
+            obj.setdefault("_ZOOM", []).append((row["value"], json.loads(row["value"])))
+            break  # only the latest zoom is needed
 
     # Fetch the instances
     if len(obj.get("INSTANCES", [])) > 0:
-
-        exemplar = obj.get("EXEMPLAR", [None])[0]
 
         instance_ids = ",".join(
             f"'{instance}'" for instance in obj.get("INSTANCES", [])

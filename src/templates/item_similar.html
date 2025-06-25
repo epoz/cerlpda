@@ -30,7 +30,7 @@
         {% for instance in obj.get("_instances", []) %}
             
             <div class="col-sm-6 col-lg-3 mb-4 grid-item" anid="{{obj.get('ID')[0]}}">
-                <div class="card">
+                <div class="card" style="width: 300px">
                 <a target="cerlpda_item" href="/id/{{instance.get('ID')[0]}}">
                     {% for img in instance.get('URL_IMAGE') %}
                         <img src="/iiif/2/{{img}}/full/300,/0/default.jpg">
@@ -62,6 +62,7 @@
                 <div class="card-body">
                     <a class="btn btn-sm btn-warning combine" href="#" data-combine="{{similar_obj['ID'][0]}}">Combine</a>
                     <p><a target="_new" href="{{similar_obj.get('URL_WEBPAGE', ['#'])[0]}}">{{similar_obj.get('TITLE', ["no title"])[0]}}</a> </p>
+                    <p>{{similar_obj.get("INSTIT", [""])[0]}} {{similar_obj.get("SHELFMARK", [""])[0]}}</p>
                 </div>
                 </div>
             </div>
@@ -77,7 +78,6 @@
             button.addEventListener('click', function (event) {
                 event.preventDefault();
                 const combineId = this.getAttribute('data-combine');
-                console.log('Combine clicked for ID:', combineId);
                 
                 fetch(`/api/combine?anid={{obj.get("ID")[0]}}&instance=${combineId}`, {
                     method: 'POST',
@@ -93,8 +93,7 @@
                     return response.json();
                 })
                 .then(data => {
-                    console.log('Success:', data);
-                    alert('Items combined successfully!');
+                    document.location = "/id/{{obj['ID'][0]}}"
                 })
                 .catch(error => {
                     console.error('Error:', error);

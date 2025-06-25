@@ -73,6 +73,7 @@ DETAIL_FIELDS = [
     "DATE_ORIG",
     "DATE_ORIG_CENTURY",
     "PROVENANCE",
+    "UPLOADER",
 ]
 
 
@@ -249,6 +250,12 @@ async def item_id(request: Request, anid: str):
         return RedirectResponse("/")
 
     obj = await get(anid)
+    if obj.get("TIPE", [""])[0] == "provenance_instance":
+        # If the object is a provenance_instance, redirect to the provenance object
+        if obj.get("PROVENANCE"):
+            exemplar_id = obj["PROVENANCE"][0]
+            return RedirectResponse(f"/id/{exemplar_id}")
+
     return render_obj_with(request, obj, "item.html")
 
 
@@ -283,6 +290,8 @@ async def api_save(anid: str, obj: Obj, user=Depends(authenticated_user)):
                 new_obj[k] = v
     new_obj["TIMESTAMP"] = [time.strftime("%Y/%m/%d %H:%M:%S")]
     new_detail_obj["TIMESTAMP"] = [time.strftime("%Y/%m/%d %H:%M:%S")]
+    new_obj["TIPE"] = ["provenance"]
+    new_detail_obj["TIPE"] = ["provenance_instance"]
 
     # Fix the IC codes that have | symbols
     ics = [i.split("|")[0] for i in new_obj.get("IC", [])]
@@ -315,22 +324,9 @@ async def api_save(anid: str, obj: Obj, user=Depends(authenticated_user)):
         )
     else:
         new_detail_obj["ID"] = new_obj["EXEMPLAR"]
-        # get the IDs to archive
-        ids_to_archive = ", ".join(
-            [f"'{x[0]}'" for x in (new_obj["EXEMPLAR"], new_obj["ID"])]
-        )
+        await save_obj_with_history(user, new_obj)
+        await save_obj_with_history(user, new_detail_obj)
 
-        r = await database.execute(
-            f"INSERT INTO history SELECT '{user.username}', CURRENT_TIMESTAMP, id, obj FROM source WHERE id IN ({ids_to_archive})",
-        )
-        r = await database.execute(
-            "UPDATE source SET obj = :obj WHERE id = :id",
-            values={"obj": json.dumps(new_obj), "id": anid},
-        )
-        r = await database.execute(
-            "UPDATE source SET obj = :obj WHERE id = :id",
-            values={"obj": json.dumps(new_detail_obj), "id": new_detail_obj["ID"][0]},
-        )
     return {"ID": new_obj["ID"][0]}
 
 
@@ -349,19 +345,48 @@ async def api_delete(anid: str, user=Depends(authenticated_user)):
     return {"deleted": anid}
 
 
+async def save_obj_with_history(user: User, obj: dict):
+    anid = obj["ID"][0]
+    r = await database.execute(
+        f"INSERT INTO history SELECT '{user.username}', CURRENT_TIMESTAMP, id, obj FROM source WHERE id = :id",
+        values={"id": anid},
+    )
+    r = await database.execute(
+        "UPDATE source SET obj = :obj WHERE id = :id",
+        values={"obj": json.dumps(obj), "id": anid},
+    )
+
+
 @app.post("/api/combine")
 async def api_combine(anid: str, instance: str, user=Depends(authenticated_user)):
     if not user.is_admin:
         raise HTTPException(405, "You are not an Admin user")
-    obj = await get(anid)
+
+    row = await database.fetch_one(
+        "SELECT obj FROM source WHERE id = :id", values={"id": anid}
+    )
+    if not row:
+        raise HTTPException(status_code=404, detail=f"Object {anid} not found")
+    obj = json.loads(row[0])
+
+    row = await database.fetch_one(
+        "SELECT obj FROM source WHERE id = :id", values={"id": instance}
+    )
+    if not row:
+        raise HTTPException(status_code=404, detail=f"Object {instance} not found")
+    instance_obj = json.loads(row[0])
+
     instances = obj.get("INSTANCES", [])
     if instance not in instances:
         instances.append(instance)
     obj["INSTANCES"] = instances
+    await save_obj_with_history(user, obj)
 
-    o = Obj(**obj)
+    # Also get the referred instance and set its PROVENANCE field
+    instance_obj["PROVENANCE"] = [anid]
+    await save_obj_with_history(user, instance_obj)
 
-    return await api_save(anid, o, user)
+    return {"status": "OK", "anid": anid, "instance": instance}
 
 
 @app.post("/api/checked/{anid:str}")
@@ -376,6 +401,41 @@ async def api_checked(anid: str, user=Depends(authenticated_user)):
         obj["CHECKED_BY_EDITOR"] = [user.username]
 
     return await api_save(anid, Obj(**obj), user)
+
+
+class ExemplarDetails(BaseModel):
+    obj_id: str
+    exemplar: str
+
+
+@app.post("/api/make_exemplar")
+async def make_exemplar(exemplar: ExemplarDetails, user=Depends(authenticated_user)):
+    obj = await get(exemplar.obj_id)
+    if user.is_admin or (obj["UPLOADER"] and obj["UPLOADER"][0][0] == user.username):
+        obj["EXEMPLAR"] = [exemplar.exemplar]
+        return await api_save(exemplar.obj_id, Obj(**obj), user)
+    raise HTTPException(405, "You are not an Admin user")
+
+
+class ZoomDetails(BaseModel):
+    obj_id: str
+    x: float
+    y: float
+    w: float
+    h: float
+
+
+@app.post("/api/save_zoom")
+async def save_zoom(zoom: ZoomDetails, user=Depends(authenticated_user)):
+    r = await database.execute(
+        "INSERT INTO annotation VALUES (:user, :uid, 'ZOOM', :value, datetime())",
+        values={
+            "user": user.username,
+            "uid": zoom.obj_id,
+            "value": zoom.model_dump_json(),
+        },
+    )
+    return {"status": "OK"}
 
 
 class Comment(BaseModel):

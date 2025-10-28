@@ -274,7 +274,7 @@ async def newuser(username: str = Form(...), email: str = Form(...)):
         admin_db.commit()
         valid = validate_email(email)
         email = valid.email
-        create_mail_reminder(email, f"Welcome {username} to iconclass.org")
+        create_mail_reminder(email, f"Welcome {username} to the CERL PDA")
 
     except EmailNotValidError as e:
         raise HTTPException(status_code=400, detail=str(e))

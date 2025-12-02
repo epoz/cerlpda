@@ -92,6 +92,25 @@
         <div>{{snip(*TF("TYPE_INS"))}} {{snip(*TF("TECHNIQUE"))}}</div>
         <div>{{snip(*TF("HEIGHT"))}} {{snip(*TF("WIDTH"))}}</div>
 
+        <div>
+        {% set lang_dict = {
+    "en": "English",
+    "de": "German",
+    "fr": "French",
+    "nl": "Dutch",
+    "it": "Italian",
+    "la": "Latin",
+    "gr": "Greek",
+    "he": "Hebrew",
+    "ru": "Russian"} %}
+        {% if obj.get("LANG", [])|length > 0 %}
+            <span class="hed">Language:</span>
+            {% for lang in obj.get("LANG", []) %}
+                {{ lang_dict.get(lang, lang) }}{% if not loop.last %}, {% endif %}
+            {% endfor %}
+        {% endif %}
+        </div>
+
         <div>{{snip(*TF("COMMENT"))}}</div>
 
 

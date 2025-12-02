@@ -190,7 +190,9 @@ async def item_json(request: Request, anid: str):
     if anid == "_":
         return {"ID": ["_"]}
     obj = await get(anid)
-    return obj
+    r = JSONResponse(content=obj)
+    r.headers["Access-Control-Allow-Origin"] = "*"
+    return r
 
 
 @app.get("/id/{anid:str}.raw", include_in_schema=False)

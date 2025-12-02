@@ -276,6 +276,7 @@ LANGUAGES = {
     "la": "Latin",
     "gr": "Greek",
     "he": "Hebrew",
+    "ru": "Russian",
     "_": "Unknown",
 }
 

@@ -28,10 +28,10 @@
         </div>
 
     <div class="row" style="padding: 1vw 2vw 0 2vw">
-    {% for k, v in obj.items() %}{% if k != "ID" %}
+    {% for k in obj.keys()|sort %}{% if k != "ID" %}
     <div class="row">
         <div class="hed col-4">{{k}}</div>
-        <div class="col">{% for vv in v %}{{vv}} {% if not loop.last %} &middot; {% endif %}{% endfor %}</div>
+        <div class="col">{% for vv in obj[k] %}{{vv}} {% if not loop.last %} &middot; {% endif %}{% endfor %}</div>
     </div>
     {% endif %}{% endfor %}
     </div>

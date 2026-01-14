@@ -34,3 +34,5 @@ jobs:
         run: |
           docker build -t $REGISTRY/${REPO}:latest -t $REGISTRY/${REPO}:$(date +%s) .
           docker push $REGISTRY/${REPO} --all-tags
+      - name: Notify When Done
+        run: curl -d "Github Workflow  ${REPO} date ✅" ntfy.sh/cerlpda

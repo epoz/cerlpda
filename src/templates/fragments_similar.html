@@ -1,0 +1,24 @@
+<div class="row justify-content-center" style="border-bottom: 1px solid #ccc; margin-bottom: 4vh; padding-bottom: 2vh">
+    <div class="col">
+        Please check if the item you are uploading already exists.
+    </div>
+    <div class="col">
+        If you are <strong>sure</strong> it is a new item, please proceed to the <a href="/edit/_URL_IMAGE_{{url_image}}" class="btn btn-sm btn-primary">next step.</a>
+    </div>
+
+</div>
+
+<div class="row grid shadow" data-masonry='{"percentPosition": true }'>
+{% for TF, obj in data.results %}
+<div class="col-sm-6 col-lg-3 mb-4 grid-item" anid="{{obj.get('ID')[0]}}">
+    <div class="card">
+    <a target="cerlpda_item" href="/id/{{obj.get('ID')[0]}}">
+        <img src="/iiif/2/{{obj.get('URL_IMAGE')[0]}}/full/300,/0/default.jpg">
+    </a>
+    <div class="card-body">
+        <p style="font-size: 75%" class="card-title">{{obj.get('OWNERS', ["Unidentified 🎈"])[0]}}</p>
+    </div>
+    </div>
+</div>
+{% endfor %}
+</div>

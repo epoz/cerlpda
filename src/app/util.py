@@ -1,9 +1,10 @@
-import smtplib, json
+import smtplib, json, pickle
+import numpy as np
 from email.message import EmailMessage
 import databases, httpx
 from .config import DATABASE_URL
 from fastapi import HTTPException
-from jinja2 import Markup
+from markupsafe import Markup
 from urllib.parse import quote_plus
 from markdown_it import MarkdownIt
 
@@ -63,24 +64,59 @@ async def get(objid):
         raise HTTPException(status_code=404)
 
     obj = {}
+    incoming = await load(row[0])
+
     # Remove all fields with empty lists or strings
-    for k, v in json.loads(row[0]).items():
+    for k, v in incoming.items():
         tmp = [vv for vv in v if len(str(vv)) > 0]
         if len(tmp) > 0:
             obj[k] = tmp
 
     # fetch any annotations
-    for rowid, user, value, timestamp in await database.fetch_all(
-        "SELECT rowid, user, value, timestamp FROM annotation WHERE uid = :uid",
+    for row in await database.fetch_all(
+        "SELECT rowid, user, value, timestamp FROM annotation WHERE field = 'COMMENT'  AND uid = :uid",
         values={"uid": objid},
     ):
-        obj.setdefault("ANNOT", []).append((rowid, user, value, timestamp))
+        obj.setdefault("ANNOT", []).append(
+            (row["rowid"], row["user"], row["value"], row["timestamp"])
+        )
+
+    # we fetch the ZOOM comments for the exemplar, not the object
+    exemplar = obj.get("EXEMPLAR", [None])[0]
+    if exemplar:
+        for row in await database.fetch_all(
+            "SELECT rowid, user, value, timestamp FROM annotation WHERE field = 'ZOOM'  AND uid = :uid ORDER BY rowid DESC",
+            values={"uid": exemplar},
+        ):
+            obj.setdefault("_ZOOM", []).append((row["value"], json.loads(row["value"])))
+            break  # only the latest zoom is needed
+
+    # Fetch the instances
+    if len(obj.get("INSTANCES", [])) > 0:
+
+        instance_ids = ",".join(
+            f"'{instance}'" for instance in obj.get("INSTANCES", [])
+        )
+        instance_objs = await database.fetch_all(
+            f"SELECT obj FROM source WHERE id IN ({instance_ids})"
+        )
+        instance_objs = [json.loads(row[0]) for row in instance_objs]
+        if len(instance_objs) > 0:
+            obj["_instances"] = instance_objs
 
     return obj
 
 
-def load(obj_string):
+async def load(obj_string):
     obj = json.loads(obj_string)
+    # if this is a provenance object, also fetch its details?
+    exemplar = obj.get("EXEMPLAR", [None])[0]
+    if exemplar:
+        exemplar = await get(exemplar)
+        for k, v in exemplar.items():
+            if k not in obj:
+                obj[k] = v
+
     return obj
     # Some fields, have IDs in them, filter them.
     # for k, v in obj.copy().items():
@@ -139,9 +175,48 @@ def ic(values):
     if r.status_code == 200:
         data = r.json()
         return data.get("result", [])
-    return {}
+    return []
 
 
 def markdown(value):
     m = MarkdownIt()
     return Markup(m.render(value))
+
+
+def cosine_distance(a, b):
+    dot_product = np.dot(a, b)
+    norm_a = np.linalg.norm(a)
+    norm_b = np.linalg.norm(b)
+    return 1 - dot_product / (norm_a * norm_b)
+
+
+async def similar_to_image(animage: str):
+    query = "SELECT filename, vecbuf FROM embeddings"
+    embeddings_query = await database.fetch_all(query)
+    embeddings = {}
+    toget = None
+    for row in embeddings_query:
+        uid = row[0]
+        vecbuf = row[1]
+        vec = pickle.loads(vecbuf)
+        if uid.startswith(animage):
+            toget = vec
+        else:
+            embeddings[uid] = vec
+
+    if toget is not None:
+        closest_match = list(
+            sorted(embeddings.items(), key=lambda x: cosine_distance(toget, x[1]))
+        )
+    else:
+        closest_match = []
+
+    matched_images = ",".join([f"'{x[0]}'" for x in closest_match[:10]])
+    query = f"SELECT source.id, json_each.value FROM source, json_each(source.obj, '$.URL_IMAGE') WHERE json_each.value in ({matched_images})"
+    matched_objs = {}
+    for x in await database.fetch_all(query):
+        matched_objs[x[1]] = await get(x[0])
+    matched_objs_batch = [
+        matched_objs[mi[0]] for mi in closest_match[:10] if mi[0] in matched_objs
+    ]  # do this convoluted way to preserve the matched order, upgrade to Voyager or other ANN needed later
+    return matched_objs_batch

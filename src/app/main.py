@@ -20,9 +20,10 @@ from .config import (
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.templating import Jinja2Templates
 from fastapi.staticfiles import StaticFiles
-from jinja2 import Markup
+from markupsafe import Markup
 from hashlib import md5
-import databases, os, json, random, time, io
+import databases, os, json, random, time, io, pickle
+import numpy as np
 from urllib.parse import quote_plus
 import httpx, openpyxl
 from markdown import Markdown
@@ -41,13 +42,39 @@ from .util import (
     ic,
     markdown,
     owner_or_unknown,
+    similar_to_image,
 )
+import clip, torch
+from PIL import Image
+
+model, preprocess = clip.load("ViT-B/32", device="cpu", jit=False)
 
 database = databases.Database(DATABASE_URL)
 
 app = FastAPI(openapi_url="/openapi")
 app.mount("/static", StaticFiles(directory="static"), name="static")
 templates = Jinja2Templates(directory="templates")
+
+
+DETAIL_FIELDS = [
+    "PERSON_AUTHOR",
+    "IMPRINT",
+    "SHELFMARK",
+    "INSTIT",
+    "LOCATION",
+    "LOCATION_ORIG",
+    "LOCATION_ORIG_CERLID",
+    "PAGE",
+    "INSTIT_CERLID",
+    "URL_WEBPAGE",
+    "URL_IMAGE",
+    "URL_CERL",
+    "TITLE",
+    "DATE_ORIG",
+    "DATE_ORIG_CENTURY",
+    "PROVENANCE",
+    "UPLOADER",
+]
 
 
 app.add_middleware(
@@ -59,43 +86,49 @@ app.add_middleware(
 )
 
 from .am import *
-from .fake_iiif import *
+
+# from .fake_iiif import *
+from .proxy import *
+from .metabotnik import *
 
 
 class Obj(BaseModel):
     ID: List[str]
-    TYPE_INS: Optional[List[str]]
-    INSTIT: Optional[List[str]]
-    URL_IMAGE: Optional[List[str]]
-    COMMENT: Optional[List[str]]
-    TITLE: Optional[List[str]]
-    TEXT: Optional[List[str]]
-    IC: Optional[List[str]]
-    WIDTH: Optional[List[str]]
-    LANG: Optional[List[str]]
-    DATE_ORIG_CENTURY: Optional[List[str]]
-    TECHNIQUE: Optional[List[str]]
-    DATE_ORIG: Optional[List[str]]
-    LOCATION_ORIG: Optional[List[str]]
-    HEIGHT: Optional[List[str]]
-    URL_WEBPAGE: Optional[List[str]]
-    PAGE: Optional[List[str]]
-    OWNERS_CERLID: Optional[List[str]]
-    LOCATION_ORIG_CERLID: Optional[List[str]]
-    INSTIT_CERLID: Optional[List[str]]
-    IMPRINT: Optional[List[str]]
-    PERSON_AUTHOR: Optional[List[str]]
-    SHELFMARK: Optional[List[str]]
-    USAGE: Optional[List[str]]
-    CAPTION: Optional[List[str]]
-    LOCATION_INV: Optional[List[str]]
-    IMPRESSUM: Optional[List[str]]
-    PERSON_CONTRIBUTOR: Optional[List[str]]
-    URL_SEEALSO: Optional[List[str]]
-    UPLOADER: Optional[List[str]]
-    CANYOUHELP: Optional[List[str]]
-    TIMESTAMP: Optional[List[str]]
-    CHECKED_BY_EDITOR: Optional[List[str]]
+    TYPE_INS: Optional[List[str]] = None
+    INSTIT: Optional[List[str]] = None
+    URL_IMAGE: Optional[List[str]] = None
+    COMMENT: Optional[List[str]] = None
+    TITLE: Optional[List[str]] = None
+    TEXT: Optional[List[str]] = None
+    IC: Optional[List[str]] = None
+    WIDTH: Optional[List[str]] = None
+    LANG: Optional[List[str]] = None
+    DATE_ORIG_CENTURY: Optional[List[str]] = None
+    TECHNIQUE: Optional[List[str]] = None
+    DATE_ORIG: Optional[List[str]] = None
+    LOCATION_ORIG: Optional[List[str]] = None
+    HEIGHT: Optional[List[str]] = None
+    URL_WEBPAGE: Optional[List[str]] = None
+    PAGE: Optional[List[str]] = None
+    OWNERS_CERLID: Optional[List[str]] = None
+    LOCATION_ORIG_CERLID: Optional[List[str]] = None
+    INSTIT_CERLID: Optional[List[str]] = None
+    IMPRINT: Optional[List[str]] = None
+    PERSON_AUTHOR: Optional[List[str]] = None
+    SHELFMARK: Optional[List[str]] = None
+    USAGE: Optional[List[str]] = None
+    CAPTION: Optional[List[str]] = None
+    LOCATION_INV: Optional[List[str]] = None
+    IMPRESSUM: Optional[List[str]] = None
+    PERSON_CONTRIBUTOR: Optional[List[str]] = None
+    URL_SEEALSO: Optional[List[str]] = None
+    UPLOADER: Optional[List[str]] = None
+    CANYOUHELP: Optional[List[str]] = None
+    TIMESTAMP: Optional[List[str]] = None
+    CHECKED_BY_EDITOR: Optional[List[str]] = None
+    EXEMPLAR: Optional[List[str]] = None
+    INSTANCES: Optional[List[str]] = None
+    PROVENANCE: Optional[List[str]] = None
 
 
 @app.exception_handler(StarletteHTTPException)
@@ -108,7 +141,9 @@ async def custom_http_exception_handler(request, exc):
 @app.get("/", response_class=HTMLResponse, include_in_schema=False)
 async def homepage(request: Request):
     # Count the number of items in the database and display a total as welcome message
-    row = await database.fetch_one("SELECT count(id) FROM source")
+    row = await database.fetch_one(
+        "SELECT count(id) FROM source WHERE tipe = 'provenance'"
+    )
     total = row[0]
 
     response = templates.TemplateResponse(
@@ -149,6 +184,12 @@ async def help(request: Request, page: str):
     )
 
 
+@app.get("/upload", response_class=HTMLResponse, include_in_schema=False)
+async def upload(request: Request):
+    response = templates.TemplateResponse("upload.html", {"request": request})
+    return response
+
+
 @app.get(
     "/edit/{anid:str}",
     include_in_schema=False,
@@ -157,6 +198,8 @@ async def help(request: Request, page: str):
 async def edit_item(request: Request, anid: str):
     if anid == "new":
         anid = "_"
+        obj = {}
+    elif anid.startswith("_URL_IMAGE_"):
         obj = {}
     else:
         obj = await get(anid)
@@ -189,6 +232,8 @@ async def item_ttl(request: Request, anid: str):
 async def item_json(request: Request, anid: str):
     if anid == "_":
         return {"ID": ["_"]}
+    if anid.startswith("_URL_IMAGE_"):
+        return {"ID": ["_"], "URL_IMAGE": [anid[11:]]}
     obj = await get(anid)
     r = JSONResponse(content=obj)
     r.headers["Access-Control-Allow-Origin"] = "*"
@@ -203,40 +248,87 @@ async def item_id_raw(request: Request, anid: str):
 
 @app.get("/id/{anid:str}", include_in_schema=False)
 async def item_id(request: Request, anid: str):
+    if anid.startswith("_"):
+        return RedirectResponse("/")
+
     obj = await get(anid)
+    if obj.get("TIPE", [""])[0] == "provenance_instance":
+        # If the object is a provenance_instance, redirect to the provenance object
+        if obj.get("PROVENANCE"):
+            exemplar_id = obj["PROVENANCE"][0]
+            return RedirectResponse(f"/id/{exemplar_id}")
+
     return render_obj_with(request, obj, "item.html")
+
+
+@app.get("/id/{anid:str}/similar/{animage:str}", include_in_schema=False)
+async def item_id_similar(request: Request, anid: str, animage: str):
+    templates.env.filters["cerl_thesaurus"] = cerl_thesaurus
+    templates.env.filters["cerl_holdinst"] = cerl_holdinst
+    templates.env.filters["to_paras"] = to_paras
+    templates.env.filters["ic"] = ic
+    templates.env.filters["markdown"] = markdown
+
+    obj = await get(anid)
+
+    matched_objs_batch = await similar_to_image(animage)
+
+    response = templates.TemplateResponse(
+        "item_similar.html",
+        {"request": request, "obj": obj, "TF": TF(obj), "similar": matched_objs_batch},
+    )
+    return response
 
 
 @app.put("/id/{anid:str}")
 async def api_save(anid: str, obj: Obj, user=Depends(authenticated_user)):
     new_obj = {}
+    new_detail_obj = {}
     for k, v in obj.dict().items():
         if v:
-            new_obj[k] = v
+            if k in DETAIL_FIELDS:
+                new_detail_obj[k] = v
+            else:
+                new_obj[k] = v
     new_obj["TIMESTAMP"] = [time.strftime("%Y/%m/%d %H:%M:%S")]
+    new_detail_obj["TIMESTAMP"] = [time.strftime("%Y/%m/%d %H:%M:%S")]
+    new_obj["TIPE"] = ["provenance"]
+    new_detail_obj["TIPE"] = ["provenance_instance"]
 
     # Fix the IC codes that have | symbols
     ics = [i.split("|")[0] for i in new_obj.get("IC", [])]
     if ics:
         new_obj["IC"] = ics
 
+    # split the object into provenance and provenance_instance
+
     if anid == "_":
-        tmp = "".join([random.choice("0123456789abcdef") for x in range(5)])
+        tmp = "".join([random.choice("0123456789abcdef") for x in range(6)])
         new_obj["ID"] = [f"cerlpda_{tmp}"]
         new_obj["UPLOADER"] = [user.username]
+        new_detail_obj["PROVENANCE"] = [f"cerlpda_{tmp}"]
+        new_obj["TIPE"] = ["provenance"]
+
+        tmp = "".join([random.choice("0123456789abcdef") for x in range(8)])
+        new_detail_obj["ID"] = [f"cerlpda_{tmp}"]
+        new_detail_obj["TIPE"] = ["provenance_instance"]
+        new_detail_obj["UPLOADER"] = [user.username]
+        new_obj["EXEMPLAR"] = [f"cerlpda_{tmp}"]
+        new_obj["INSTANCES"] = [f"cerlpda_{tmp}"]
+
         r = await database.execute(
             "INSERT INTO source VALUES (:id, :obj)",
             values={"obj": json.dumps(new_obj), "id": new_obj["ID"][0]},
         )
+        r = await database.execute(
+            "INSERT INTO source VALUES (:id, :obj)",
+            values={"obj": json.dumps(new_detail_obj), "id": new_detail_obj["ID"][0]},
+        )
     else:
-        r = await database.execute(
-            "INSERT INTO history SELECT :user, CURRENT_TIMESTAMP, id, obj FROM source WHERE id = :id",
-            values={"user": user.username, "id": anid},
-        )
-        r = await database.execute(
-            "UPDATE source SET obj = :obj WHERE id = :id",
-            values={"obj": json.dumps(new_obj), "id": anid},
-        )
+        new_detail_obj["ID"] = new_obj["EXEMPLAR"]
+        await save_obj_with_history(user, new_obj)
+        await save_obj_with_history(user, new_detail_obj)
+
     return {"ID": new_obj["ID"][0]}
 
 
@@ -255,6 +347,50 @@ async def api_delete(anid: str, user=Depends(authenticated_user)):
     return {"deleted": anid}
 
 
+async def save_obj_with_history(user: User, obj: dict):
+    anid = obj["ID"][0]
+    r = await database.execute(
+        f"INSERT INTO history SELECT '{user.username}', CURRENT_TIMESTAMP, id, obj FROM source WHERE id = :id",
+        values={"id": anid},
+    )
+    r = await database.execute(
+        "UPDATE source SET obj = :obj WHERE id = :id",
+        values={"obj": json.dumps(obj), "id": anid},
+    )
+
+
+@app.post("/api/combine")
+async def api_combine(anid: str, instance: str, user=Depends(authenticated_user)):
+    if not user.is_admin:
+        raise HTTPException(405, "You are not an Admin user")
+
+    row = await database.fetch_one(
+        "SELECT obj FROM source WHERE id = :id", values={"id": anid}
+    )
+    if not row:
+        raise HTTPException(status_code=404, detail=f"Object {anid} not found")
+    obj = json.loads(row[0])
+
+    row = await database.fetch_one(
+        "SELECT obj FROM source WHERE id = :id", values={"id": instance}
+    )
+    if not row:
+        raise HTTPException(status_code=404, detail=f"Object {instance} not found")
+    instance_obj = json.loads(row[0])
+
+    instances = obj.get("INSTANCES", [])
+    if instance not in instances:
+        instances.append(instance)
+    obj["INSTANCES"] = instances
+    await save_obj_with_history(user, obj)
+
+    # Also get the referred instance and set its PROVENANCE field
+    instance_obj["PROVENANCE"] = [anid]
+    await save_obj_with_history(user, instance_obj)
+
+    return {"status": "OK", "anid": anid, "instance": instance}
+
+
 @app.post("/api/checked/{anid:str}")
 async def api_checked(anid: str, user=Depends(authenticated_user)):
     if not user.is_admin:
@@ -267,6 +403,41 @@ async def api_checked(anid: str, user=Depends(authenticated_user)):
         obj["CHECKED_BY_EDITOR"] = [user.username]
 
     return await api_save(anid, Obj(**obj), user)
+
+
+class ExemplarDetails(BaseModel):
+    obj_id: str
+    exemplar: str
+
+
+@app.post("/api/make_exemplar")
+async def make_exemplar(exemplar: ExemplarDetails, user=Depends(authenticated_user)):
+    obj = await get(exemplar.obj_id)
+    if user.is_admin or (obj["UPLOADER"] and obj["UPLOADER"][0][0] == user.username):
+        obj["EXEMPLAR"] = [exemplar.exemplar]
+        return await api_save(exemplar.obj_id, Obj(**obj), user)
+    raise HTTPException(405, "You are not an Admin user")
+
+
+class ZoomDetails(BaseModel):
+    obj_id: str
+    x: float
+    y: float
+    w: float
+    h: float
+
+
+@app.post("/api/save_zoom")
+async def save_zoom(zoom: ZoomDetails, user=Depends(authenticated_user)):
+    r = await database.execute(
+        "INSERT INTO annotation VALUES (:user, :uid, 'ZOOM', :value, datetime())",
+        values={
+            "user": user.username,
+            "uid": zoom.obj_id,
+            "value": zoom.model_dump_json(),
+        },
+    )
+    return {"status": "OK"}
 
 
 class Comment(BaseModel):
@@ -533,13 +704,14 @@ async def canyouhelp(request: Request, page: int = 0, size: int = 100):
 async def api_search(q: str, size: int = 20, page: int = 0):
     if not q:
         search_results = await database.fetch_all(
-            "SELECT id FROM source ORDER BY RANDOM()"
+            "SELECT id FROM source WHERE tipe = 'provenance' ORDER BY RANDOM()"
         )
     else:
-        query = "SELECT id FROM idx WHERE text MATCH :q ORDER BY rank"
+        query = "SELECT idx.id FROM idx INNER JOIN source ON idx.id = source.id WHERE idx.text MATCH :q AND source.tipe = 'provenance' ORDER BY rank"
         try:
             search_results = await database.fetch_all(query, values={"q": q})
         except sqlite3.OperationalError:
+            traceback.print_exc()
             return {"total": 0, "results": []}
     return await fetch(search_results, size, page, q == "")
 
@@ -551,11 +723,12 @@ async def fetch(search_results, size, page=0, shuffle=False):
     batch = await database.fetch_all(
         "SELECT obj FROM source WHERE id in (%s)" % ", ".join(search_results)
     )
-    batch = [load(x[0]) for x in batch]
+
     if shuffle:
         random.shuffle(batch)
-
     start = page * size
+    batch = batch[start : start + size]
+    batch = [await load(x[0]) for x in batch]
 
     return {"total": total, "results": batch[start : start + size]}
 
@@ -563,6 +736,33 @@ async def fetch(search_results, size, page=0, shuffle=False):
 @app.get("/favicon.ico", include_in_schema=False)
 async def favicon():
     return b"AAABAAEAEBAAAAEAGABoAwAAFgAAACgAAAAQAAAAIAAAAAEAGAAAAAAAAAAAAEgAAABIAAAAAAAA\nAAAAAADY9/jY9/jK39+NkpK0tLXAwcK5urusq6uusbG7vbynqKmvs7SwtbTY+fnY9/jY9/jY9/jY\n+frs///b1dY9Li1pYWF1d3WhmZeXlZUbFBMaCgyIcXHp8vTd///X9vfY9/jY9/jX9/jY+vvi///x\n///r8fVhTk7///8AAADv8fH6///w///c///X+PnX9vfY9/jY9/jY9/jY9/jX9/jY+vvo///Iy8qD\nenp9cG/7///Z///f///k/f7h///W9vfY9/jY9/jY9/jY9/jY9/jX9vff///X6ed4dHV6c3Pv///w\n///i5uRtWlr6///W9/jY9/jY9/jY9/jY9/jY9/jX9vff//++wsKzq6uXiIaWh4VRQUB0c3M/MzP/\n///a///Y9/jY9/jY9/jY9/jY9/jX9vfc///IzsyRhITh2dqjpKSDhYOWkZJgXVuolJPc///Y9/jY\n9/jY9/jX9vfX9/jW9vfZ//////9+c3Wcm5mzoqV9e3snJSdpUVHg29vb///Y9/jY9/jX9vfX+frm\n///t///////Gzc0xJib///+hn56+urrh39/n///j///Y+frY9/jY9/ja///0///u7u1AKymCdHT2\n/f5vaGb/9fW5s7O2uLby+frx7+/2///f///Y9/jY9/ji//+Kd3VdUVGnqalmZWVcXV13c3N2c3PF\nwMBIREQVExMoGRl6bWvp///Y9/jY9/je///LxMJoW11sbW2DhIWKjIuTkpJTVVVdXl6yr69maGgy\nLy/x8fHg///Y9/jY9/je///+///MwsOAgYGXkZFraWh7enlFRUVHR0dvbnBub21pZmjYycnt///Y\n9/jY9/jo//+OfHtnYmKJhIZUUlNeXmDHw8V1dXV6e3uMi4xhYGBIRUQ/MC/z///Y9/jY9/jq//+e\ngIB1bm1+fn2UkJFMR0ehn58NCwmsrqxWUVFnWli3srL1///i///Y9/jY9/jY+PnV5+fBxsaNjI2T\nlJSurq6OkZGrq6ubnZ2an5/R3d3b+vvY9/jX9vfY9/gAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA\nAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA\n"
+
+
+def cosine_distance(a, b):
+    dot_product = np.dot(a, b)
+    norm_a = np.linalg.norm(a)
+    norm_b = np.linalg.norm(b)
+    return 1 - dot_product / (norm_a * norm_b)
+
+
+@app.get(
+    "/fragments/similar/{img:str}", response_class=HTMLResponse, include_in_schema=False
+)
+async def fragments_similar(request: Request, img: str):
+
+    matched_objs_batch = await similar_to_image(img)
+
+    batch = {
+        "total": len(matched_objs_batch),
+        "results": [(TF(b), b) for b in matched_objs_batch],
+    }
+
+    templates.env.filters["strip_cerlid"] = strip_cerlid
+    response = templates.TemplateResponse(
+        "fragments_similar.html",
+        {"request": request, "data": batch, "url_image": img},
+    )
+    return response
 
 
 @app.post("/api/upload", include_in_schema=True)
@@ -591,6 +791,29 @@ async def post_upload(file: UploadFile = File(...), user=Depends(authenticated_u
         open(os.path.join(UPLOADS_PATH, f"{hash_filename}.{timestamp}"), "w").write(
             json.dumps(meta)
         )
+        # create embedding if it does not exist yet
+        row = await database.fetch_one(
+            "SELECT filename, vecbuf FROM embeddings WHERE filename = :filename",
+            values={"filename": hash_filename},
+        )
+        if not row:
+            try:
+                image_tensor = preprocess(Image.open(io.BytesIO(contents)))
+                image_features = model.encode_image(
+                    torch.unsqueeze(image_tensor.to("cpu"), dim=0)
+                )
+                image_features /= image_features.norm(dim=-1, keepdim=True)
+                image_embeddings = (
+                    image_features.cpu().detach().numpy().astype("float32")
+                )
+                vecbuf = image_embeddings[0].dumps()
+                r = await database.execute(
+                    "INSERT INTO embeddings VALUES (:filename, :vecbuf)",
+                    values={"filename": hash_filename, "vecbuf": vecbuf},
+                )
+            except:
+                traceback.print_exc("Error creating embedding")
+
         return meta
     raise HTTPException(
         status_code=500, detail="An UPLOADS_PATH has not been configured on the server"

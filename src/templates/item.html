@@ -1,11 +1,13 @@
 {% extends "base.html" %}
 
+
 {% macro snip(field, title, text) %}
 {% if field == 'INSTIT_CERLID' %}
     {% if text %}{% if title %}<span class="hed">{{title}}: </span>{% endif %}{{text|cerl_holdinst}}{% endif %}
 {% else %}
     {% if text %}{% if title %}<span class="hed">{{title}}: </span>{% endif %}{{text|cerl_thesaurus}}{% endif %}
 {% endif %}
+{% if text %}{% if field == 'WIDTH' or field == 'HEIGHT' %}cm{% endif %}{% endif %}
 {% endmacro %}
 
 
@@ -13,6 +15,15 @@
 {% block title %}CERL PDA · {{obj["ID"][0]}}{% endblock title %}
 
 {% block head_last%}
+<style>
+.annotation-rect {
+    border: 2px solid red;
+    box-sizing: border-box;
+    pointer-events: none;
+}
+</style>
+
+
 <meta property="og:title" content="CERL PDA · {{obj['ID'][0]}}" />
 {% if obj.get('URL_IMAGE') %}
 <meta property="og:image" content="https://pda.cerl.org/iiif/2/{{obj['URL_IMAGE'][0]}}/full/300,/0/default.jpg" />
@@ -22,12 +33,16 @@
 
 
 <script src="/static/openseadragon-2.4.2/openseadragon.min.js"></script>
-<script>document.objId = '{{obj['ID'][0]}}'</script>
+<script>
+document.objId = '{{obj['ID'][0]}}'
+{% if obj.get('EXEMPLAR') %}
+document.exemplar = '{{obj['EXEMPLAR'][0]}}'
+{% endif %}
+</script>
 <script type="module">import * as item from '/static/item/item.js';</script>
-<style>
-.hed {font-variant: small-caps; color: #888; margin-right: 0.5ch}
-.notespara {margin: 0}
-</style>
+
+
+
 
 {% endblock %}
 
@@ -75,8 +90,7 @@
 
 
         <div><span class="hed">Source:</span>
-        {{obj.get("PERSON_AUTHOR", [""])[0]}}{% if "TITLE" in obj %}, {% endif %}{{obj.get("TITLE", [""])[0]}}
-        {% if "IMPRINT" in obj%}, {% endif %}{{obj.get("IMPRINT", [""])[0]}}
+        {{obj.get("PERSON_AUTHOR", [""])[0]}}{% if "TITLE" in obj and "PERSON_AUTHOR" in obj %}, {% endif %}{{obj.get("TITLE", [""])[0]}}{% if "IMPRINT" in obj%}, {% endif %}{{obj.get("IMPRINT", [""])[0]}}
         </div>
 
         
@@ -144,7 +158,20 @@
         <div style="margin-bottom: 3vh">{{obj["NOTES"][0]|to_paras}}</div>
         {% endif %}
 
+        <div class="mb-2">
+        {% if request.user.is_admin  or (obj["UPLOADER"] and obj["UPLOADER"][0][0] == request.user.username )%}
+        <a id="add_zoom" href="#" class="btn btn-sm btn-secondary">Add Zoom</a>
+        <a id="save_zoom" href="#" class="btn btn-sm btn-secondary" style="display: none">Save Zoomed Area</a>        
+        {% endif %}
 
+
+        {% for animage in obj.get('URL_IMAGE', []) %}    
+            <a title="Image: {{animage}}" data-image="{{animage}}" href="/id/{{obj['ID'][0]}}/similar/{{animage}}" class="show_similar btn btn-sm btn-secondary">{% if loop.index > 1 %}Image {{loop.index}}{% else %}Find Similar Items{% endif %}</a>
+        {% endfor %}
+        </div>
+
+        <div id="image_thumbnails"></div>
+        
         <div id="thedzi1" style="height: 60vh; width: 100%; margin: 0 auto; border-top: 4px solid #ddd;"></div>
 
         {% if "TIMESTAMP" in obj %}
@@ -179,6 +206,33 @@
         {% endif %}
     </div>
 
+    {% if obj.get("_instances", [])|length > 1 %}
+    <div class="row" style="padding: 1vw 2vw 0 2vw">
+        <h3>Other Instances</h3>
+        {% for instance in obj.get("_instances", []) %}
+            {% if instance.get('ID')[0] != obj.get('EXEMPLAR')[0] %}
+            <div class="col-sm-6 col-lg-3 mb-4 grid-item" anid="{{obj.get('ID')[0]}}">
+                <div class="card">
+                <a target="cerlpda_item" href="/id/{{instance.get('ID')[0]}}">
+                    {% for img in instance.get('URL_IMAGE') %}
+                        <img src="/iiif/2/{{img}}/full/300,/0/default.jpg">
+                    {% endfor %}
+                </a>
+                <div class="card-body">
+                    {% if request.user.is_admin  or (obj["UPLOADER"] and obj["UPLOADER"][0][0] == request.user.username )%}
+                    <a class="btn btn-sm btn-warning exemplar" href="#" data-combine="{{instance['ID'][0]}}">Make Main Instance</a>{% endif %}
+                    <p><a target="_new" href="{{instance.get('URL_WEBPAGE', ['#'])[0]}}">{{instance.get('TITLE', ["no title"])[0]}}</a> </p>
+                    <p>{{instance.get("INSTIT", [""])[0]}} {{instance.get("SHELFMARK", [""])[0]}}</p>
+
+                </div>
+                </div>
+            </div>
+            {% endif %}
+        {% endfor %}
+    </div>
+    {% endif %}
+
+
 </div>
 
 <div class="modal fade" id="commentModal" tabindex="-1" aria-labelledby="commentModalLabel" aria-hidden="true">
@@ -200,6 +254,12 @@
 </div>
 
 <script type="text/javascript">
+let annotationMode = false;
+let isDrawing = false;
+let startPoint = null;
+let currentRect = null;
+
+
 async function doInits() {
     var viewer = OpenSeadragon({
         id: "thedzi1",
@@ -213,9 +273,207 @@ async function doInits() {
             tileSource: '/iiif/2/{{animage}}/info.json'} {% if not loop.last %},{% endif %}
         {% endfor %}],
     });
+
+    {% if "_ZOOM" in obj %}
+    
+    const zoomData = {{obj['_ZOOM'][0][0]|safe}};
+    
+    const x = zoomData.x;
+    const y = zoomData.y;
+    const w = zoomData.w;
+    const h = zoomData.h;
+        
+
+    {% if obj['EXEMPLAR'][0] == obj['_ZOOM'][0][1]['obj_id']%}
+    
+    // Wait for the viewer to be ready
+    viewer.addHandler('open', function() {
+
+        const currentItem = viewer.world.getItemAt(0);
+        const itemBounds = currentItem.getBounds();
+        
+        // Convert relative coordinates back to viewport coordinates
+        const overlayBounds = new OpenSeadragon.Rect(
+            itemBounds.x + (x * itemBounds.width),
+            itemBounds.y + (y * itemBounds.height),
+            w * itemBounds.width,
+            h * itemBounds.height
+        );
+        
+        // Create overlay element
+        const rectElement = document.createElement("div");
+        rectElement.className = "annotation-rect";
+        
+        // Add overlay to viewer
+        viewer.addOverlay({
+            element: rectElement,
+            location: overlayBounds
+        });
+        zoomToAnnotation(overlayBounds)
+    });
+    {% endif %}
+
+    {% endif %}
+
+    viewer.addHandler("canvas-press", function (event) {
+        if (!annotationMode) return;
+
+    
+        viewer.clearOverlays();
+
+        isDrawing = true;
+        startPoint = viewer.viewport.pointFromPixel(event.position);
+        event.preventDefaultAction = true;
+    });
+
+    viewer.addHandler("canvas-drag", function (event) {
+        if (!annotationMode || !isDrawing) return;
+
+        event.preventDefaultAction = true;
+
+        const currentPoint = viewer.viewport.pointFromPixel(event.position);
+
+        const rect = {
+        x: Math.min(startPoint.x, currentPoint.x),
+        y: Math.min(startPoint.y, currentPoint.y),
+        width: Math.abs(currentPoint.x - startPoint.x),
+        height: Math.abs(currentPoint.y - startPoint.y),
+        };
+
+        if (currentRect) {
+        viewer.removeOverlay(currentRect);
+        }
+
+        const rectElement = document.createElement("div");
+        rectElement.className = "annotation-rect";
+
+        viewer.addOverlay({
+        element: rectElement,
+        location: new OpenSeadragon.Rect(rect.x, rect.y, rect.width, rect.height),
+        });
+
+        currentRect = rectElement;
+    });
+
+    viewer.addHandler("canvas-release", function (event) {
+        if (!annotationMode || !isDrawing) return;
+
+        event.preventDefaultAction = true;
+        isDrawing = false;
+
+        if (currentRect && startPoint) {
+        const endPoint = viewer.viewport.pointFromPixel(event.position);
+
+        const rect = {
+            x: Math.min(startPoint.x, endPoint.x),
+            y: Math.min(startPoint.y, endPoint.y),
+            width: Math.abs(endPoint.x - startPoint.x),
+            height: Math.abs(endPoint.y - startPoint.y),
+        };
+
+        if (rect.width > 0.001 && rect.height > 0.001) {
+            const annotation = {
+            id: Date.now(),
+            element: currentRect,
+            bounds: rect,
+            };
+            document.zoomed_annotation = annotation;
+            zoomToAnnotation(rect)
+            console.log("Annotation created:", annotation.bounds);
+        } else {
+            viewer.removeOverlay(currentRect);
+        }
+        }
+
+        currentRect = null;
+        startPoint = null;
+    });
+
+
+    
+    document.getElementById('add_zoom').addEventListener('click', function(event) {
+        event.preventDefault();
+        document.getElementById('add_zoom').style.display = 'none';
+        document.getElementById('save_zoom').style.display = 'inline-block';
+        annotationMode = true;
+        viewer.element.style.cursor = "crosshair"
+    });
+
+    function zoomToAnnotation(bounds) {
+        const padding = 0.05;
+        const paddedBounds = new OpenSeadragon.Rect(
+            bounds.x - (bounds.width * padding),
+            bounds.y - (bounds.height * padding),
+            bounds.width * (1 + 2 * padding),
+            bounds.height * (1 + 2 * padding)
+        );    
+        viewer.viewport.fitBounds(paddedBounds, true);
+    }
+
+    document.getElementById('save_zoom').addEventListener('click', function(event) {
+        event.preventDefault();
+        document.getElementById("save_zoom").style.display = "none"
+        document.getElementById('add_zoom').style.display = 'inline-block';
+        annot = {obj_id: document.exemplar}
+
+        const currentItem = viewer.world.getItemAt(0);
+        const itemBounds = currentItem.getBounds();
+        const itemWidth = itemBounds.width;
+        const itemHeight = itemBounds.height;
+
+        annot.itemWidth = itemWidth;
+        annot.itemHeight = itemHeight;
+        annot.itemX = itemBounds.x;
+        annot.itemY = itemBounds.y;
+        annot.x = (document.zoomed_annotation.bounds.x - itemBounds.x) / itemWidth;
+        annot.y = (document.zoomed_annotation.bounds.y - itemBounds.y) / itemHeight;
+        annot.w = document.zoomed_annotation.bounds.width / itemWidth;
+        annot.h = document.zoomed_annotation.bounds.height / itemHeight;
+
+
+        fetch("/api/save_zoom", 
+        {
+            method: "POST"
+            , credentials: "same-origin"
+            , headers: {"Content-Type": "application/json"}
+            , body: JSON.stringify(annot)
+        })
+        .then(response => response.json())
+        .then(data => {
+            viewer.clearOverlays();
+            document.location.reload()        
+        })     
+        
+
+    })
+
+    document.querySelectorAll('a.exemplar').forEach(function(element) {
+        element.addEventListener('click', function(event) {
+            event.preventDefault();
+            const exemplarId = this.getAttribute('data-combine');
+            
+            fetch("/api/make_exemplar", {
+                method: "POST",
+                credentials: "same-origin",
+                headers: {"Content-Type": "application/json"},
+                body: JSON.stringify(
+                    {obj_id: document.objId, exemplar:exemplarId}
+                )
+            })
+            .then(response => response.json())
+            .then(data => {
+                document.location.reload();
+            });
+
+
+        });
+    });
+    
+
+
 }
 
-doInits()
+document.addEventListener('DOMContentLoaded', doInits)
 
 </script>
 {% endblock %}

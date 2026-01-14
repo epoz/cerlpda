@@ -5,7 +5,7 @@ ORIGINS = os.environ.get(
     "ORIGINS",
     "http://localhost:8080",
 ).split(" ")
-DATABASE_URL = "sqlite:///cerlpda.sqlite"
+DATABASE_URL = os.environ.get("DATABASE_URL", "sqlite:///cerlpda.sqlite")
 ADMIN_DATABASE = os.environ.get("ADMIN_DATABASE", "admin.sqlite")
 SECRET_KEY = os.environ.get("SECRET_KEY", "foobarbaz")
 ACCESS_TOKEN_EXPIRE_DAYS = int(os.environ.get("ACCESS_TOKEN_EXPIRE_DAYS", "30"))
@@ -17,3 +17,4 @@ UPLOADS_PATH = os.environ.get("UPLOADS_PATH")
 FIIIF_CACHE = os.environ.get("FIIIF_CACHE")
 CERL_THESAURUS_API_USERNAME = os.environ.get("CERL_THESAURUS_API_USERNAME")
 CERL_THESAURUS_API_PASSWORD = os.environ.get("CERL_THESAURUS_API_PASSWORD")
+DB_PATH_MB = os.environ.get("DB_PATH_MB", "metabotnik.sqlite")
